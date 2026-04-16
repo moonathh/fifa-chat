@@ -1,0 +1,13 @@
+{
+    "rewrites": [
+        { "source": "/", "destination": "/frontend/views/index.html" },
+        { "source": "/login", "destination": "/frontend/views/login.html" },
+        { "source": "/register", "destination": "/frontend/views/register.html" },
+        { "source": "/profile", "destination": "/frontend/views/profile.html" },
+        { "source": "/social", "destination": "/frontend/views/social.html" },
+        { "source": "/call", "destination": "/frontend/views/call.html" },
+        { "source": "/task", "destination": "/frontend/views/task.html" },
+        { "source": "/rewards", "destination": "/frontend/views/rewards.html" },
+        { "source": "/help-mty", "destination": "/frontend/views/help-mty.html" }
+    ]
+}
