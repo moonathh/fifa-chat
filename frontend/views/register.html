@@ -35,22 +35,36 @@
 </div>
 
 <script>
+const API_URL = "https://fifa-chat-dr6w.onrender.com";
+
 async function register() {
     const full_name = document.getElementById("full_name").value;
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    const res = await fetch("http://localhost:3000/register", {
-        method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({ full_name, email, password })
-    });
+    if (!full_name || !email || !password) {
+        alert("Llena todos los campos");
+        return;
+    }
 
-    if (res.ok) {
-        alert("Cuenta creada");
-        window.location.href = "login.html";
-    } else {
-        alert("Error al registrar");
+    try {
+        const res = await fetch(`${API_URL}/register`, {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ full_name, email, password })
+        });
+
+        if (res.ok) {
+            alert("Cuenta creada correctamente");
+            window.location.href = "login.html";
+        } else {
+            const err = await res.json();
+            alert(err.error || "Error al registrar");
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert("Error de conexión con el servidor");
     }
 }
 </script>
