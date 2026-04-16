@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tareas de Grupo | FIFA 2026</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+        }
+        .task-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--fifa-cyan);
+            transition: transform 0.2s;
+        }
+        .task-card:hover { transform: translateY(-5px); }
+        .task-tag {
+            background: #f1f5f9;
+            color: var(--fifa-navy);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 50px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="navbar-top">
+            <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+            <div class="user-profile">
+                <span id="user-name">Miki</span>
+                <div class="avatar">👤</div>
+            </div>
+        </nav>
+
+        <div class="main-container">
+            <aside class="sidebar-nav">
+                <div class="nav-section">
+                    <p class="nav-section-title">Comunicación</p>
+                    <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+                    <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+                </div>
+                <div class="nav-section">
+                    <p class="nav-section-title">Comunidad Local</p>
+                    <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
+                </div>
+                <div class="nav-section">
+                    <p class="nav-section-title">Logística</p>
+                    <a href="task.html" class="nav-item active"><span>📋</span> Tareas de Grupo</a>
+                    <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+                </div>
+            </aside>
+
+            <main class="content-area">
+                <header class="content-header" style="padding: 20px;">
+                    <h2 style="color: var(--fifa-navy); margin: 0;">Misiones de Grupo Activas</h2>
+                    <p style="color: #64748b; font-size: 14px;">Completa los retos asignados en tus chats para ganar puntos.</p>
+                </header>
+
+                <div id="tasks-container" class="task-grid">
+                    </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarTareas();
+            const savedName = sessionStorage.getItem('userName') || "Miki";
+            document.getElementById('user-name').textContent = savedName;
+        });
+
+        function cargarTareas() {
+            const container = document.getElementById('tasks-container');
+            const tareas = JSON.parse(localStorage.getItem('tareasGrupales') || '[]');
+
+            if (tareas.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <span style="font-size: 40px;">📋</span>
+                        <p>No hay tareas asignadas todavía.<br>Ve a un chat grupal y asigna una misión.</p>
+                        <a href="index.html" style="color: var(--fifa-cyan); font-weight: bold; text-decoration: none;">Ir a Chats</a>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = [...tareas].reverse().map((tarea, index) => {
+                const originalIndex = tareas.length - 1 - index;
+                return `
+                <div class="task-card">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                        <span class="task-tag">${tarea.grupo}</span>
+                        <b style="color: var(--fifa-cyan);">+${tarea.recompensa} pts</b>
+                    </div>
+                    <h3 style="margin: 0 0 10px 0; color: var(--fifa-navy); font-size: 18px;">${tarea.titulo}</h3>
+                    <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Estado: ⏳ Pendiente</p>
+                    <button onclick="completarTarea(${originalIndex})" style="width: 100%; padding: 10px; border: none; background: var(--fifa-navy); color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                        Marcar como completada
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function completarTarea(index) {
+            let tareas = JSON.parse(localStorage.getItem('tareasGrupales') || '[]');
+            tareas.splice(index, 1);
+            localStorage.setItem('tareasGrupales', JSON.stringify(tareas));
+            
+            alert("¡Misión completada! Puntos enviados a tu cuenta.");
+            cargarTareas();
+        }
+    </script>
+</body>
+</html>

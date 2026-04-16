@@ -1,0 +1,25 @@
+<header class="chat-header">
+    <div class="header-status">
+        <div class="status-dot"></div>
+        <div>
+            <h4 id="current-group-name" style="margin:0;">Estadio Monterrey - Chat Grupal</h4>
+            <small id="group-count">3 integrantes conectados</small>
+        </div>
+    </div>
+    
+    <div class="header-tools">
+        <button id="btn-assign-task" class="btn-task-assign" onclick="abrirSelectorTareas()" style="display: none; background: var(--fifa-cyan); border: none; padding: 8px 12px; border-radius: 8px; color: white; font-weight: bold; cursor: pointer; font-size: 11px; margin-right: 10px;">
+            📋 Asignar Tarea
+        </button>
+
+        <button class="tool-btn video-call" id="video-call-btn" title="Iniciar Videollamada">📹 Llamada</button>
+        
+        <div class="encryption-wrapper">
+            <span class="enc-label">CIFRADO</span>
+            <label class="switch">
+                <input type="checkbox" id="encrypt-toggle">
+                <span class="slider round"></span>
+            </label>
+        </div>
+    </div>
+</header>

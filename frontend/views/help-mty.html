@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Ayuda MTY | FIFA 2026 Support</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="app-layout">
+        <nav class="navbar-top">
+    <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+    <div class="user-profile">
+        <span style="font-weight: bold; margin-right: 10px;">Invitado</span>
+        <a href="profile.html" class="profile-trigger"><div class="avatar">👤</div></a>
+    </div>
+</nav>
+
+        <div class="main-container">
+            <aside class="sidebar-nav">
+                <div class="nav-section">
+                    <p class="nav-section-title">Comunicación</p>
+                    <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+                    <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+                </div>
+                <div class="nav-section">
+                    <p class="nav-section-title">Comunidad Local</p>
+                    <a href="help-mty.html" class="nav-item active"><span>🤠</span> Ayuda MTY</a>
+                </div>
+                <div class="nav-section">
+                    <p class="nav-section-title">Logística</p>
+                    <a href="task.html" class="nav-item"><span>📋</span> Tareas de Grupo</a>
+                    <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+                </div>
+            </aside>
+
+            <main class="chat-window">
+                <header class="chat-header" style="background: #f8f9fa; border-bottom: 2px solid #004795;">
+                    <div class="header-status">
+                        <div class="status-dot" style="background: #2ed573;"></div>
+                        <strong>🤠 Foro de Ayuda: Monterrey</strong>
+                        <small style="margin-left: 10px; color: #666;">542 locales en línea</small>
+                    </div>
+                </header>
+
+                <section class="chat-messages" id="help-messages">
+    <div class="message-wrapper received">
+        <div class="message-bubble">
+            <div class="message-info"><b>Jake Mendez</b></div>
+            Hi! Which is the best way to get to Estadio BBVA?
+            <span class="message-time">14:20</span>
+        </div>
+    </div>
+
+<div class="message-wrapper sent">
+<div class="message-bubble">
+<div class="message-info"><b>mrrayado</b></div>
+alch no sé 🤙
+<span class="message-time">14:22 ✅</span>
+</div>
+</div>
+</section>
+
+    <footer class="input-bar">
+        <input type="text" placeholder="Haz una pregunta o ayuda a un turista...">
+        <button class="send-btn">Preguntar</button>
+    </footer>
+</main>
+</div>
+</div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // de aki se obtiene el nombre guardado
+        const savedName = sessionStorage.getItem('userName');
+        
+        // buscamos en el header
+        const userDisplay = document.querySelector('.user-profile span');
+
+        if (savedName && userDisplay) {
+            userDisplay.textContent = savedName;
+        } else if (!savedName && !window.location.href.includes('login.html')) {
+            // si no hay sesión se regresa al login
+            window.location.href = "login.html";
+        }
+    });
+</script>
+</body>
+</html>

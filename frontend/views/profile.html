@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mi Perfil | FIFA 2026 Support</title>
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+<div class="app-layout">
+
+<!-- NAV -->
+<nav class="navbar-top">
+    <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+
+    <div class="user-profile">
+        <!-- 🔥 ahora dinámico -->
+        <span id="navbar-user">Cargando...</span>
+        <a href="profile.html" class="profile-trigger active-profile">
+            <div class="avatar">👤</div>
+        </a>
+    </div>
+</nav>
+
+<div class="main-container">
+
+<!-- SIDEBAR -->
+<aside class="sidebar-nav">
+    <div class="nav-section">
+        <p class="nav-section-title">Comunicación</p>
+        <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+        <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-section-title">Comunidad Local</p>
+        <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-section-title">Logística</p>
+        <a href="task.html" class="nav-item"><span>📋</span> Tareas de Grupo</a>
+        <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+    </div>
+</aside>
+
+<!-- MAIN -->
+<main class="chat-window" style="background: var(--bg-light); overflow-y: auto;">
+
+<div class="view-content profile-view">
+<div class="profile-card">
+
+<div class="profile-banner"></div>
+
+<div class="profile-header">
+    <div class="avatar-large">👤</div>
+    <button class="btn-secondary" style="margin-top: 10px;">Cambiar Foto</button>
+</div>
+
+<form class="auth-form" style="box-shadow: none; padding: 0; margin-top: 20px;">
+
+<div class="form-group">
+    <label>Nombre de Usuario</label>
+    <input id="fullName" type="text" readonly>
+</div>
+
+<div class="form-group">
+    <label>Correo Electrónico</label>
+    <input id="email" type="email" readonly>
+</div>
+
+<div class="form-group">
+    <label>Sede Principal</label>
+    <select disabled>
+        <option>Monterrey - Estadio BBVA</option>
+        <option>CDMX - Estadio Azteca</option>
+        <option>Guadalajara - Estadio Akron</option>
+    </select>
+</div>
+
+<div style="display:flex; gap:10px;">
+
+    <button type="button" class="btn-primary">Editar Perfil</button>
+
+    <a href="login.html" id="logoutBtn"
+       class="btn-secondary"
+       style="background:#fff0f0; color:#ff4757; text-decoration:none; line-height:40px; text-align:center;">
+        Cerrar Sesión
+    </a>
+
+</div>
+
+</form>
+
+</div>
+</div>
+
+</main>
+</div>
+</div>
+
+<!-- ===================== JS ===================== -->
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+
+    const userId = sessionStorage.getItem("user_id");
+
+    if (!userId) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+        const res = await fetch(`http://localhost:3000/users/${userId}`);
+
+        if (!res.ok) throw new Error("Error usuario");
+
+        const user = await res.json();
+
+        document.getElementById("navbar-user").textContent = user.full_name;
+        document.getElementById("fullName").value = user.full_name;
+        document.getElementById("email").value = user.email;
+
+    } catch (err) {
+        console.error(err);
+
+        document.getElementById("navbar-user").textContent = "Error";
+    }
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+        sessionStorage.clear();
+    });
+
+});
+</script>
+
+</body>
+</html>

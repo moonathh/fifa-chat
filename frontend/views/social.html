@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Social | FIFA 2026 Support</title>
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+<div class="app-layout">
+
+<nav class="navbar-top">
+    <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+    <div class="user-profile">
+        <span id="user-name-display">Invitado</span>
+        <a href="profile.html" class="profile-trigger">
+            <div class="avatar">👤</div>
+        </a>
+    </div>
+</nav>
+
+<div class="main-container">
+
+<aside class="sidebar-nav">
+    <div class="nav-section">
+        <p class="nav-section-title">Comunicación</p>
+        <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+        <a href="social.html" class="nav-item active"><span>👥</span> Social</a>
+    </div>
+</aside>
+
+<main class="chat-window" style="overflow-y:auto;">
+<div class="view-content">
+
+<h2>👥 Social</h2>
+
+<div class="action-card">
+    <h3>Agregar amigo</h3>
+
+    <input type="email" id="friend-email" placeholder="correo@ejemplo.com">
+    <button class="btn-primary" id="btn-add-friend">Agregar</button>
+
+    <p id="msg"></p>
+</div>
+
+<h3>Mis amigos</h3>
+<div id="friends-list">Cargando...</div>
+
+</div>
+</main>
+
+</div>
+</div>
+
+<script>
+const userId = sessionStorage.getItem("user_id");
+const userName = sessionStorage.getItem("userName");
+
+if (!userId) window.location.href = "login.html";
+
+document.getElementById("user-name-display").textContent = userName;
+
+// ======================
+// FRIENDS
+// ======================
+async function loadFriends() {
+    try {
+        const res = await fetch(`http://localhost:3000/friends/${userId}`);
+        const friends = await res.json();
+
+        const container = document.getElementById("friends-list");
+        container.innerHTML = "";
+
+        if (!friends.length) {
+            container.innerHTML = "<p>No tienes amigos aún</p>";
+            return;
+        }
+
+        friends.forEach(f => {
+            const div = document.createElement("div");
+            div.className = "friend-card";
+
+            div.innerHTML = `
+                <div>
+                    <b>${f.full_name}</b>
+                </div>
+                <button onclick="openChat('${f.full_name}')">💬</button>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("friends-list").innerHTML =
+            "<p>Error cargando amigos</p>";
+    }
+}
+
+// ======================
+// ADD FRIEND
+// ======================
+document.getElementById("btn-add-friend").addEventListener("click", async () => {
+
+    const email = document.getElementById("friend-email").value.trim();
+    const msg = document.getElementById("msg");
+
+    if (!email) return msg.textContent = "Escribe un correo";
+
+    try {
+        const res = await fetch("http://localhost:3000/friends", {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify({
+                user_id: userId,
+                friend_email: email
+            })
+        });
+
+        const data = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+            msg.textContent = "Amigo agregado ✔";
+            document.getElementById("friend-email").value = "";
+            loadFriends();
+        } else {
+            msg.textContent = data.error || "Error";
+        }
+
+    } catch (err) {
+        console.error(err);
+        msg.textContent = "Error servidor";
+    }
+});
+
+// ======================
+function openChat(name) {
+    sessionStorage.setItem("chatTarget", name);
+    window.location.href = "index.html";
+}
+
+loadFriends();
+</script>
+
+</body>
+</html>

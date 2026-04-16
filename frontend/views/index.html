@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chats | FIFA 2026 Support</title>
+<link rel="stylesheet" href="../css/styles.css">
+</head>
+
+<body>
+<div class="app-layout">
+
+<!-- NAV -->
+<nav class="navbar-top">
+    <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+    <div class="user-profile">
+        <span id="userHeaderName">Invitado</span>
+        <a href="profile.html" class="profile-trigger">
+            <div class="avatar">👤</div>
+        </a>
+    </div>
+</nav>
+
+<div class="main-container">
+
+<!-- SIDEBAR -->
+<aside class="sidebar-nav">
+    <div class="nav-section">
+        <p class="nav-section-title">Comunicación</p>
+        <a href="#" class="nav-item active" onclick="toggleSidebar(event)">💬 Chats</a>
+        <a href="social.html" class="nav-item">👥 Social</a>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-section-title">Comunidad Local</p>
+        <a href="help-mty.html" class="nav-item">🤠 Ayuda MTY</a>
+    </div>
+
+    <div class="nav-section">
+        <p class="nav-section-title">Logística</p>
+        <a href="task.html" class="nav-item">📋 Tareas</a>
+        <a href="rewards.html" class="nav-item">🎁 Tienda</a>
+    </div>
+</aside>
+
+<!-- SIDEBAR 2 (DISCORD STYLE) -->
+<aside class="chat-sidebar collapsed" id="chat-sidebar">
+
+    <div class="chat-sidebar-header">
+        <h3>💬 Conversaciones</h3>
+    </div>
+
+    <div class="chat-section-title">Amigos</div>
+    <div id="friends-sidebar"></div>
+
+    <div class="chat-section-title">Grupos</div>
+    <div id="groups-sidebar"></div>
+
+</aside>
+
+<!-- CHAT -->
+<main class="chat-window">
+
+<header class="chat-header">
+    <div style="display:flex;gap:10px;align-items:center;">
+        <div class="avatar-micro" id="header-avatar">👤</div>
+        <div>
+            <strong id="current-group-name">@Chat</strong>
+            <p id="header-status-text" style="margin:0;font-size:10px;">● En línea</p>
+        </div>
+    </div>
+
+    <button onclick="toggleSidebar()">💬</button>
+</header>
+
+<section class="chat-messages" id="chat-messages-area"></section>
+
+<footer class="input-bar">
+    <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
+    <button onclick="enviarMensaje()">Enviar</button>
+</footer>
+
+</main>
+</div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+
+<script>
+let chatId = 1;
+const socket = io("http://localhost:3000");
+
+const userId = sessionStorage.getItem("user_id");
+const userName = sessionStorage.getItem("userName");
+
+// --------------------
+// CHECK SESSION
+// --------------------
+if (!userId) {
+    window.location.href = "login.html";
+}
+
+// --------------------
+// TOGGLE SIDEBAR DISCORD
+// --------------------
+function toggleSidebar() {
+    document.getElementById("chat-sidebar").classList.toggle("collapsed");
+}
+
+function toggleSidebar(e) {
+    e.preventDefault();
+
+    const sidebar = document.getElementById("chat-sidebar");
+
+    if (sidebar.classList.contains("collapsed")) {
+        sidebar.classList.remove("collapsed");
+        sidebar.classList.add("open");
+    } else {
+        sidebar.classList.add("collapsed");
+        sidebar.classList.remove("open");
+    }
+}
+document.addEventListener("DOMContentLoaded", () => {
+    const sidebar = document.getElementById("chat-sidebar");
+
+    sidebar.classList.remove("collapsed");
+    sidebar.classList.add("open");
+});
+// --------------------
+// LOAD USER HEADER
+// --------------------
+document.getElementById("userHeaderName").textContent = userName;
+
+// --------------------
+// MAPS (DINÁMICO DESPUÉS)
+// --------------------
+const privateChats = {};
+
+// --------------------
+// LOAD FRIENDS
+// --------------------
+async function loadFriends() {
+    const res = await fetch(`http://localhost:3000/friends/${userId}`);
+    const friends = await res.json();
+
+    const container = document.getElementById("friends-sidebar");
+    container.innerHTML = "";
+
+    friends.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "friend-item";
+        div.innerHTML = `👤 ${f.full_name}`;
+
+        div.onclick = () => openPrivateChat(f);
+        container.appendChild(div);
+
+        privateChats[f.full_name] = f.id;
+    });
+}
+
+// --------------------
+// LOAD GROUPS (TEMPORALES)
+// --------------------
+function loadGroups() {
+    const groups = [
+     
+    ];
+
+    const container = document.getElementById("groups-sidebar");
+    container.innerHTML = "";
+
+    groups.forEach(g => {
+        const div = document.createElement("div");
+        div.className = "friend-item";
+        div.innerHTML = `👥 ${g.name}`;
+
+        div.onclick = () => openGroupChat(g);
+        container.appendChild(div);
+    });
+}
+
+// --------------------
+// OPEN PRIVATE CHAT
+// --------------------
+function openPrivateChat(friend) {
+    chatId = friend.id;
+
+    document.getElementById("current-group-name").textContent = friend.full_name;
+    document.getElementById("header-avatar").textContent = "👤";
+    document.getElementById("header-status-text").textContent = "● Privado";
+
+    loadMessages();
+}
+
+// --------------------
+// OPEN GROUP CHAT
+// --------------------
+function openGroupChat(group) {
+    chatId = group.id;
+
+    document.getElementById("current-group-name").textContent = group.name;
+    document.getElementById("header-avatar").textContent = "👥";
+    document.getElementById("header-status-text").textContent = "● Grupo";
+
+    loadMessages();
+}
+
+// --------------------
+// SOCKET
+// --------------------
+socket.on("connect", () => {
+    socket.emit("join_chat", chatId);
+});
+
+socket.on("new_message", (msg) => {
+
+    if (msg.chat_id !== chatId) return;
+
+    const container = document.getElementById("chat-messages-area");
+
+    const div = document.createElement("div");
+    div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
+
+    div.innerHTML = `
+        <div class="message-bubble">
+            <b>${msg.username}</b><br>
+            ${msg.message}
+        </div>
+    `;
+
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+});
+
+// --------------------
+// LOAD MESSAGES
+// --------------------
+async function loadMessages() {
+    const res = await fetch(`http://localhost:3000/messages/${chatId}`);
+    const msgs = await res.json();
+
+    const container = document.getElementById("chat-messages-area");
+    container.innerHTML = "";
+
+    msgs.forEach(msg => {
+        const div = document.createElement("div");
+        div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
+
+        div.innerHTML = `
+            <div class="message-bubble">
+                <b>${msg.username}</b><br>
+                ${msg.message}
+            </div>
+        `;
+
+        container.appendChild(div);
+    });
+}
+
+// --------------------
+// SEND MESSAGE
+// --------------------
+async function enviarMensaje() {
+    const input = document.getElementById("input-chat-main");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    await fetch("http://localhost:3000/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            chat_id: chatId,
+            username: userName,
+            message
+        })
+    });
+
+    input.value = "";
+}
+
+// INIT
+loadFriends();
+loadGroups();
+loadMessages();
+
+</script>
+
+</body>
+</html>

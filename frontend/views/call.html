@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Llamada de Grupo | FIFA 2026</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .call-container { background: #1a1a1a; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; color: white; }
+        .video-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 80%; max-width: 900px; }
+        .video-box { background: #333; aspect-ratio: 16/9; border-radius: 15px; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 2px solid #444; }
+        .video-box.active { border-color: var(--fifa-cyan); }
+        .video-label { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; font-size: 12px; }
+        .call-controls { margin-top: 30px; display: flex; gap: 20px; }
+        .control-btn { width: 60px; height: 60px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: 0.3s; }
+        .btn-hangup { background: #ff4757; color: white; }
+        .btn-mute { background: #57606f; color: white; }
+    </style>
+</head>
+<body>
+    <div class="call-container">
+        <h2>Llamada: #Estadio-Monterrey</h2>
+        <div class="video-grid">
+            <div class="video-box active">
+                <span class="video-label">Tú (México)</span>
+                <div style="font-size: 40px;">👤</div>
+            </div>
+            <div class="video-box">
+                <span class="video-label">Guía Local</span>
+                <div style="font-size: 40px;">👨‍🏫</div>
+            </div>
+        </div>
+        <div class="call-controls">
+            <button class="control-btn btn-mute">🎤</button>
+            <button class="control-btn btn-mute">📷</button>
+            <a href="index.html" class="control-btn btn-hangup">📞</a>
+        </div>
+    </div>
+</body>
+</html>
