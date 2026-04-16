@@ -1,11 +1,23 @@
 const express = require("express");
-const mysql = require("mysql2");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+const { Pool } = require("pg");
 
 const app = express();
 const server = http.createServer(app);
+
+/* ======================
+   🔌 POSTGRES (SUPABASE)
+====================== */
+const db = new Pool({
+    connectionString: "postgresql://postgres:moonsunny2213@db.ktfojwoghksilundhyuh.supabase.co:5432/postgres",
+    ssl: { rejectUnauthorized: false }
+});
+
+/* ======================
+   🔌 SOCKET.IO
+====================== */
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -16,58 +28,38 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-/* ======================
-   🔌 MYSQL CONNECTION
-====================== */
-const db = mysql.createConnection({
-    host: "localhost",
-    user: "chatuser",
-    password: "1234",
-    database: "fifa_chat"
-});
-
-db.connect(err => {
-    if (err) {
-        console.log("❌ Error conexión DB:", err);
-    } else {
-        console.log("✅ Conectado a MySQL");
-    }
-});
+db.connect()
+    .then(() => console.log("✅ Conectado a Supabase (Postgres)"))
+    .catch(err => console.error("❌ Error DB:", err));
 
 /* ======================
-   🧠 SOCKET.IO (REAL TIME)
+   🧠 SOCKET REAL TIME
 ====================== */
 io.on("connection", (socket) => {
     console.log("🟢 Usuario conectado:", socket.id);
 
     socket.on("join_chat", (chatId) => {
         socket.join(`chat_${chatId}`);
-        console.log(`📥 Usuario unido al chat ${chatId}`);
     });
 
-    socket.on("send_message", (data) => {
+    socket.on("send_message", async (data) => {
         const { chat_id, username, message } = data;
 
-        // 1. guardar en DB
-        db.query(
-            "INSERT INTO messages (chat_id, username, message) VALUES (?, ?, ?)",
-            [chat_id, username, message],
-            (err) => {
-                if (err) {
-                    console.log("❌ Error guardando mensaje:", err);
-                    return;
-                }
+        try {
+            await db.query(
+                "INSERT INTO messages (chat_id, username, message) VALUES ($1, $2, $3)",
+                [chat_id, username, message]
+            );
 
-                const fullMessage = {
-                    chat_id,
-                    username,
-                    message
-                };
+            io.to(`chat_${chat_id}`).emit("new_message", {
+                chat_id,
+                username,
+                message
+            });
 
-                // 2. emitir a todos en el chat
-                io.to(`chat_${chat_id}`).emit("new_message", fullMessage);
-            }
-        );
+        } catch (err) {
+            console.error("❌ Error guardando mensaje:", err);
+        }
     });
 
     socket.on("disconnect", () => {
@@ -78,88 +70,107 @@ io.on("connection", (socket) => {
 /* ======================
    🧾 REGISTER
 ====================== */
-app.post("/register", (req, res) => {
+app.post("/register", async (req, res) => {
     const { full_name, email, password } = req.body;
 
-    db.query(
-        "INSERT INTO users (full_name, email, password) VALUES (?, ?, ?)",
-        [full_name, email, password],
-        (err) => {
-            if (err) return res.status(500).json(err);
-            res.sendStatus(200);
-        }
-    );
+    try {
+        await db.query(
+            "INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3)",
+            [full_name, email, password]
+        );
+
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 /* ======================
    🔐 LOGIN
 ====================== */
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
-    db.query(
-        "SELECT * FROM users WHERE email = ? AND password = ? LIMIT 1",
-        [email, password],
-        (err, results) => {
-            if (err) return res.status(500).json(err);
-            if (results.length === 0) return res.status(401).json({ error: "Login incorrecto" });
+    try {
+        const result = await db.query(
+            "SELECT * FROM users WHERE email = $1 AND password = $2 LIMIT 1",
+            [email, password]
+        );
 
-            res.json(results[0]);
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: "Login incorrecto" });
         }
-    );
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 /* ======================
-   👥 USERS
+   👤 USER INFO
 ====================== */
-app.get("/users/:id", (req, res) => {
-    db.query(
-        "SELECT id, full_name, email FROM users WHERE id = ?",
-        [req.params.id],
-        (err, results) => {
-            if (err) return res.status(500).json(err);
-            res.json(results[0]);
-        }
-    );
+app.get("/users/:id", async (req, res) => {
+    try {
+        const result = await db.query(
+            "SELECT id, full_name, email FROM users WHERE id = $1",
+            [req.params.id]
+        );
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 /* ======================
    👬 FRIENDS
 ====================== */
-app.get("/friends/:userId", (req, res) => {
+app.get("/friends/:userId", async (req, res) => {
     const userId = req.params.userId;
 
-    db.query(
-        `SELECT u.id, u.full_name
-         FROM users u
-         JOIN friends f
-         ON (u.id = f.user1_id OR u.id = f.user2_id)
-         WHERE (f.user1_id = ? OR f.user2_id = ?) AND u.id != ?`,
-        [userId, userId, userId],
-        (err, results) => {
-            if (err) return res.status(500).json(err);
-            res.json(results);
-        }
-    );
+    try {
+        const result = await db.query(
+            `SELECT u.id, u.full_name
+             FROM users u
+             JOIN friends f
+             ON (u.id = f.user1_id OR u.id = f.user2_id)
+             WHERE (f.user1_id = $1 OR f.user2_id = $1)
+             AND u.id != $1`,
+            [userId]
+        );
+
+        res.json(result.rows);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 /* ======================
-   💬 LOAD MESSAGES (history)
+   💬 MESSAGES HISTORY
 ====================== */
-app.get("/messages/:chat", (req, res) => {
-    db.query(
-        "SELECT * FROM messages WHERE chat_id = ? ORDER BY created_at ASC",
-        [req.params.chat],
-        (err, results) => {
-            if (err) return res.status(500).json(err);
-            res.json(results);
-        }
-    );
+app.get("/messages/:chat", async (req, res) => {
+    try {
+        const result = await db.query(
+            "SELECT * FROM messages WHERE chat_id = $1 ORDER BY created_at ASC",
+            [req.params.chat]
+        );
+
+        res.json(result.rows);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
 });
 
 /* ======================
-   🚀 SERVER START
+   🚀 START SERVER
 ====================== */
-server.listen(3000, "0.0.0.0", () => {
-    console.log("Servidor activo en red");
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, "0.0.0.0", () => {
+    console.log("🚀 Servidor corriendo en puerto", PORT);
 });
