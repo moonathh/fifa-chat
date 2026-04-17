@@ -151,6 +151,39 @@ app.get("/friends/:userId", async (req, res) => {
     }
 });
 
+
+/* ======================
+   FRIENDS POST
+====================== */
+app.post("/friends", async (req, res) => {
+    const { user_id, friend_email } = req.body;
+
+    try {
+        const friendResult = await db.query(
+            "SELECT id FROM users WHERE email=$1",
+            [friend_email]
+        );
+
+        if (friendResult.rows.length === 0)
+            return res.status(404).json({ error: "Usuario no encontrado" });
+
+        const friend_id = friendResult.rows[0].id;
+
+        if (friend_id == user_id)
+            return res.status(400).json({ error: "No puedes agregarte a ti mismo" });
+
+        await db.query(
+            "INSERT INTO friends (user1_id, user2_id) VALUES ($1,$2)",
+            [user_id, friend_id]
+        );
+
+        res.sendStatus(200);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+
 /* ======================
    MESSAGES GET
 ====================== */

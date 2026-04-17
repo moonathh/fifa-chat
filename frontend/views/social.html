@@ -65,7 +65,7 @@ document.getElementById("user-name-display").textContent = userName;
 // ======================
 async function loadFriends() {
     try {
-        const res = await fetch(`http://localhost:3000/friends/${userId}`);
+        const res = await fetch(`https://fifa-chat-dr6w.onrender.com/friends/${userId}`);
         const friends = await res.json();
 
         const container = document.getElementById("friends-list");
@@ -108,7 +108,7 @@ document.getElementById("btn-add-friend").addEventListener("click", async () => 
     if (!email) return msg.textContent = "Escribe un correo";
 
     try {
-        const res = await fetch("http://localhost:3000/friends", {
+        const res = await fetch("https://fifa-chat-dr6w.onrender.com/friends", {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify({
