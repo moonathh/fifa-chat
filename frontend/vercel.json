@@ -1,6 +1,8 @@
 {
+    "redirects": [
+        { "source": "/", "destination": "/views/index.html" }
+    ],
     "rewrites": [
-        { "source": "/", "destination": "/views/index.html" },
         { "source": "/login", "destination": "/views/login.html" },
         { "source": "/register", "destination": "/views/register.html" },
         { "source": "/profile", "destination": "/views/profile.html" },
