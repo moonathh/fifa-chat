@@ -250,18 +250,19 @@ async function enviarMensaje() {
 
     if (!message || !chatId) return;
 
-    await fetch(`${API_URL}/messages`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            chat_id: chatId,
-            username: userName,
-            message
-        })
+    // Enviar por Socket.io en lugar de fetch
+    socket.emit("send_message", {
+        chat_id: chatId,
+        username: userName,
+        message
     });
 
     input.value = "";
 }
+
+document.getElementById("input-chat-main").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") enviarMensaje();
+});
 
 /* ======================
    INIT
