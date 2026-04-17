@@ -151,12 +151,17 @@ async function loadFriends() {
         div.innerHTML = `👤 ${f.full_name}`;
 
         div.onclick = () => {
-            document.getElementById("current-group-name").textContent = f.full_name;
-            document.getElementById("header-avatar").textContent = "👤";
-            document.getElementById("header-status-text").textContent = "● Privado";
+    document.getElementById("current-group-name").textContent = f.full_name;
+    document.getElementById("header-avatar").textContent = "👤";
+    document.getElementById("header-status-text").textContent = "● Privado";
 
-            joinChat(f.id);
-        };
+    // Genera un chat_id único y consistente entre los dos usuarios
+    const id1 = Math.min(parseInt(userId), parseInt(f.id));
+    const id2 = Math.max(parseInt(userId), parseInt(f.id));
+    const privateChatId = `${id1}_${id2}`;
+
+    joinChat(privateChatId);
+};
 
         container.appendChild(div);
     });
