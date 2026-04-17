@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     try {
-        const res = await fetch(`http://localhost:3000/users/${userId}`);
+        const res = await fetch(`https://fifa-chat-dr6w.onrender.com/users/${userId}`);
 
         if (!res.ok) throw new Error("Error usuario");
 
