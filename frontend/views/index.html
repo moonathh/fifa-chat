@@ -835,13 +835,20 @@ c.appendChild(div);
 c.scrollTop=c.scrollHeight;
 }
 
-socket.on("new_message",(msg)=>{
-if(String(msg.chat_id)!==String(chatId)) return;
-renderMessage(msg);
+socket.on("new_message", (msg) => {
 
-if(currentGroup){
-loadGroupTasks(currentGroup.id);
-}
+    if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
+
+    renderMessage(msg);
+
+    /* Si estoy dentro de un grupo, actualizar tareas automáticamente */
+    if (
+        chatType === "group" &&
+        currentGroup &&
+        document.getElementById("task-panel").classList.contains("open")
+    ) {
+        loadGroupTasks(currentGroup.id);
+    }
 });
 
 async function enviarMensaje(){
@@ -851,11 +858,21 @@ const message=input.value.trim();
 
 if(!message || !chatId) return;
 
-socket.emit("send_message",{
-chat_id:chatId,
-username:userName,
-message
+socket.emit("send_message", {
+    chat_id: chatId,
+    username: userName,
+    message
 });
+
+if (
+    chatType === "group" &&
+    currentGroup &&
+    document.getElementById("task-panel").classList.contains("open")
+) {
+    setTimeout(() => loadGroupTasks(currentGroup.id), 250);
+}
+
+
 
 input.value="";
 }
