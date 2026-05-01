@@ -849,17 +849,25 @@ function renderMessage(msg) {
 }
 
 socket.on("new_message", (msg) => {
-    if (msg.chat_id != chatId) return;
+    if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
     renderMessage(msg);
 });
 
 async function enviarMensaje() {
-    const input   = document.getElementById("input-chat-main");
+    const input = document.getElementById("input-chat-main");
     const message = input.value.trim();
+
     if (!message || !chatId) return;
 
-    socket.emit("send_message", { chat_id: chatId, username: userName, message });
+    socket.emit("send_message", {
+        chat_id: chatId,
+        username: userName,
+        message
+    });
+
     input.value = "";
+
+    setTimeout(loadMessages, 300);
 }
 
 document.getElementById("input-chat-main").addEventListener("keydown", e => {
