@@ -60,44 +60,60 @@ io.on("connection", (socket) => {
 
         if (!chat_id || !message) return;
 
-        // Guardar mensaje
+        /* guardar mensaje */
         await db.query(
             `INSERT INTO messages (chat_id, username, message)
              VALUES ($1,$2,$3)`,
             [chat_id, username, message]
         );
 
-        // Enviar mensaje en tiempo real
+        /* reenviar mensaje */
         io.to(`chat_${chat_id}`).emit("new_message", {
             chat_id,
             username,
             message
         });
 
-        // Contar mensajes del grupo
-        const count = await db.query(
-            `SELECT COUNT(*)::int AS total
-             FROM messages
-             WHERE chat_id=$1`,
-            [chat_id]
-        );
+        /* SOLO SI ES GRUPO */
+        if (chat_id.startsWith("group_")) {
 
-        const totalMessages = count.rows[0].total;
+            const groupId = parseInt(chat_id.replace("group_", ""));
 
-        // Completar tareas automáticas
-        await db.query(
-            `UPDATE tasks
-             SET completed=TRUE,
-                 completed_at=NOW()
-             WHERE group_id=$1
-               AND completed=FALSE
-               AND task_type='messages'
-               AND target_value <= $2`,
-            [chat_id, totalMessages]
-        );
+            /* contar mensajes del grupo */
+            const count = await db.query(
+                `SELECT COUNT(*)::int AS total
+                 FROM messages
+                 WHERE chat_id=$1`,
+                [chat_id]
+            );
 
-        // Refrescar tareas al grupo
-        io.to(`chat_${chat_id}`).emit("task_progress");
+            const totalMessages = count.rows[0].total;
+
+            /* actualizar progreso */
+            await db.query(
+                `UPDATE tasks
+                 SET current_value=$1
+                 WHERE group_id=$2
+                 AND task_type='messages'
+                 AND completed=FALSE`,
+                [totalMessages, groupId]
+            );
+
+            /* completar tareas */
+            await db.query(
+                `UPDATE tasks
+                 SET completed=TRUE,
+                     completed_at=NOW()
+                 WHERE group_id=$1
+                 AND task_type='messages'
+                 AND completed=FALSE
+                 AND current_value >= target_value`,
+                [groupId]
+            );
+
+            /* avisar frontend */
+            io.to(`chat_${chat_id}`).emit("task_progress");
+        }
 
     } catch (err) {
         console.error(err);
