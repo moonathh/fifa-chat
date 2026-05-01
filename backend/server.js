@@ -52,73 +52,67 @@ io.on("connection", (socket) => {
         socket.leave(`chat_${String(chatId).trim()}`);
     });
 
-   socket.on("send_message", async (data) => {
-    try {
-        const chat_id = String(data.chat_id).trim();
-        const username = String(data.username).trim();
-        const message = String(data.message).trim();
+    socket.on("send_message", async (data) => {
+        try {
+            const chat_id = String(data.chat_id).trim();
+            const username = String(data.username).trim();
+            const message = String(data.message).trim();
 
-        if (!chat_id || !message) return;
+            if (!chat_id || !message) return;
 
-        /* guardar mensaje */
-        await db.query(
-            `INSERT INTO messages (chat_id, username, message)
-             VALUES ($1,$2,$3)`,
-            [chat_id, username, message]
-        );
-
-        /* reenviar mensaje */
-        io.to(`chat_${chat_id}`).emit("new_message", {
-            chat_id,
-            username,
-            message
-        });
-
-        /* SOLO SI ES GRUPO */
-        if (chat_id.startsWith("group_")) {
-
-            const groupId = parseInt(chat_id.replace("group_", ""));
-
-            /* contar mensajes del grupo */
-            const count = await db.query(
-                `SELECT COUNT(*)::int AS total
-                 FROM messages
-                 WHERE chat_id=$1`,
-                [chat_id]
-            );
-
-            const totalMessages = count.rows[0].total;
-
-            /* actualizar progreso */
+            /* guardar mensaje */
             await db.query(
-                `UPDATE tasks
-                 SET current_value=$1
-                 WHERE group_id=$2
-                 AND task_type='messages'
-                 AND completed=FALSE`,
-                [totalMessages, groupId]
+                `INSERT INTO messages (chat_id, username, message) VALUES ($1, $2, $3)`,
+                [chat_id, username, message]
             );
 
-            /* completar tareas */
-            await db.query(
-                `UPDATE tasks
-                 SET completed=TRUE,
-                     completed_at=NOW()
-                 WHERE group_id=$1
-                 AND task_type='messages'
-                 AND completed=FALSE
-                 AND current_value >= target_value`,
-                [groupId]
-            );
+            /* reenviar mensaje a todos en el chat */
+            io.to(`chat_${chat_id}`).emit("new_message", {
+                chat_id,
+                username,
+                message
+            });
 
-            /* avisar frontend */
-            io.to(`chat_${chat_id}`).emit("task_progress");
+            /* SOLO SI ES GRUPO */
+            if (chat_id.startsWith("group_")) {
+                const groupId = parseInt(chat_id.replace("group_", ""));
+
+                /* contar total de mensajes del grupo */
+                const count = await db.query(
+                    `SELECT COUNT(*)::int AS total FROM messages WHERE chat_id = $1`,
+                    [chat_id]
+                );
+                const totalMessages = count.rows[0].total;
+
+                /* actualizar progreso de tareas activas */
+                await db.query(
+                    `UPDATE tasks
+                     SET current_value = $1
+                     WHERE group_id = $2
+                       AND task_type = 'messages'
+                       AND completed = FALSE`,
+                    [totalMessages, groupId]
+                );
+
+                /* completar tareas que alcanzaron la meta */
+                await db.query(
+                    `UPDATE tasks
+                     SET completed = TRUE, completed_at = NOW()
+                     WHERE group_id = $1
+                       AND task_type = 'messages'
+                       AND completed = FALSE
+                       AND current_value >= target_value`,
+                    [groupId]
+                );
+
+                /* avisar al frontend */
+                io.to(`chat_${chat_id}`).emit("task_progress");
+            }
+
+        } catch (err) {
+            console.error("❌ send_message error:", err);
         }
-
-    } catch (err) {
-        console.error(err);
-    }
-});
+    });
 
     socket.on("group_created", (data) => {
         if (data.member_ids) {
@@ -147,13 +141,11 @@ app.post("/register", async (req, res) => {
         const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
         await db.query(
-            `INSERT INTO users (full_name, email, password)
-             VALUES ($1,$2,$3)`,
+            `INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3)`,
             [full_name, email, hash]
         );
 
         res.sendStatus(200);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -167,10 +159,7 @@ app.post("/login", async (req, res) => {
 
     try {
         const result = await db.query(
-            `SELECT *
-             FROM users
-             WHERE email=$1
-             LIMIT 1`,
+            `SELECT * FROM users WHERE email = $1 LIMIT 1`,
             [email]
         );
 
@@ -180,10 +169,8 @@ app.post("/login", async (req, res) => {
 
         const user = result.rows[0];
         const savedPassword = user.password;
-
         let valid = false;
 
-        // Si ya está en bcrypt
         if (
             savedPassword.startsWith("$2a$") ||
             savedPassword.startsWith("$2b$") ||
@@ -191,17 +178,12 @@ app.post("/login", async (req, res) => {
         ) {
             valid = await bcrypt.compare(password, savedPassword);
         } else {
-            // Usuario viejo en texto plano
             valid = password === savedPassword;
 
-            // Migración automática
             if (valid) {
                 const newHash = await bcrypt.hash(password, SALT_ROUNDS);
-
                 await db.query(
-                    `UPDATE users
-                     SET password=$1
-                     WHERE id=$2`,
+                    `UPDATE users SET password = $1 WHERE id = $2`,
                     [newHash, user.id]
                 );
             }
@@ -212,7 +194,6 @@ app.post("/login", async (req, res) => {
         }
 
         delete user.password;
-
         res.json(user);
 
     } catch (err) {
@@ -226,10 +207,8 @@ app.post("/login", async (req, res) => {
 app.get("/users/:id", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT id, full_name, email, COALESCE(points,0) AS points
-             FROM users
-             WHERE id=$1
-             LIMIT 1`,
+            `SELECT id, full_name, email, COALESCE(points, 0) AS points
+             FROM users WHERE id = $1 LIMIT 1`,
             [req.params.id]
         );
 
@@ -238,7 +217,6 @@ app.get("/users/:id", async (req, res) => {
         }
 
         res.json(result.rows[0]);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -249,10 +227,9 @@ app.put("/users/:id", async (req, res) => {
 
     try {
         const result = await db.query(
-            `UPDATE users
-             SET full_name=$1, email=$2
-             WHERE id=$3
-             RETURNING id, full_name, email, COALESCE(points,0) AS points`,
+            `UPDATE users SET full_name = $1, email = $2
+             WHERE id = $3
+             RETURNING id, full_name, email, COALESCE(points, 0) AS points`,
             [full_name, email, req.params.id]
         );
 
@@ -261,7 +238,6 @@ app.put("/users/:id", async (req, res) => {
         }
 
         res.json(result.rows[0]);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -275,15 +251,12 @@ app.get("/friends/:userId", async (req, res) => {
         const result = await db.query(
             `SELECT u.id, u.full_name
              FROM users u
-             JOIN friends f
-               ON (u.id=f.user1_id OR u.id=f.user2_id)
-             WHERE (f.user1_id=$1 OR f.user2_id=$1)
-               AND u.id != $1`,
+             JOIN friends f ON (u.id = f.user1_id OR u.id = f.user2_id)
+             WHERE (f.user1_id = $1 OR f.user2_id = $1) AND u.id != $1`,
             [req.params.userId]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -294,7 +267,7 @@ app.post("/friends", async (req, res) => {
 
     try {
         const friendResult = await db.query(
-            `SELECT id FROM users WHERE email=$1`,
+            `SELECT id FROM users WHERE email = $1`,
             [friend_email]
         );
 
@@ -309,13 +282,11 @@ app.post("/friends", async (req, res) => {
         }
 
         await db.query(
-            `INSERT INTO friends (user1_id, user2_id)
-             VALUES ($1,$2)`,
+            `INSERT INTO friends (user1_id, user2_id) VALUES ($1, $2)`,
             [user_id, friend_id]
         );
 
         res.sendStatus(200);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -329,15 +300,11 @@ app.get("/messages/:chat", async (req, res) => {
         const chat = String(req.params.chat).trim();
 
         const result = await db.query(
-            `SELECT *
-             FROM messages
-             WHERE TRIM(chat_id)=$1
-             ORDER BY created_at ASC`,
+            `SELECT * FROM messages WHERE TRIM(chat_id) = $1 ORDER BY created_at ASC`,
             [chat]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -348,13 +315,11 @@ app.post("/messages", async (req, res) => {
 
     try {
         await db.query(
-            `INSERT INTO messages (chat_id, username, message)
-             VALUES ($1,$2,$3)`,
+            `INSERT INTO messages (chat_id, username, message) VALUES ($1, $2, $3)`,
             [chat_id, username, message]
         );
 
         res.sendStatus(200);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -369,16 +334,15 @@ app.get("/groups/:userId", async (req, res) => {
             `SELECT g.id, g.name, g.image_url, g.created_by,
                     COUNT(gm2.user_id) AS member_count
              FROM groups g
-             JOIN group_members gm ON gm.group_id=g.id
-             LEFT JOIN group_members gm2 ON gm2.group_id=g.id
-             WHERE gm.user_id=$1
+             JOIN group_members gm ON gm.group_id = g.id
+             LEFT JOIN group_members gm2 ON gm2.group_id = g.id
+             WHERE gm.user_id = $1
              GROUP BY g.id, g.name, g.image_url, g.created_by, g.created_at
              ORDER BY g.created_at DESC`,
             [req.params.userId]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -389,13 +353,12 @@ app.get("/groups/:groupId/members", async (req, res) => {
         const result = await db.query(
             `SELECT u.id, u.full_name
              FROM users u
-             JOIN group_members gm ON gm.user_id=u.id
-             WHERE gm.group_id=$1`,
+             JOIN group_members gm ON gm.user_id = u.id
+             WHERE gm.group_id = $1`,
             [req.params.groupId]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -410,9 +373,8 @@ app.post("/groups", async (req, res) => {
         await client.query("BEGIN");
 
         const groupResult = await client.query(
-            `INSERT INTO groups (name,image_url,created_by)
-             VALUES ($1,$2,$3)
-             RETURNING *`,
+            `INSERT INTO groups (name, image_url, created_by)
+             VALUES ($1, $2, $3) RETURNING *`,
             [name, image_url || "👥", created_by]
         );
 
@@ -427,15 +389,13 @@ app.post("/groups", async (req, res) => {
 
         for (const uid of allMembers) {
             await client.query(
-                `INSERT INTO group_members (group_id,user_id)
-                 VALUES ($1,$2)
-                 ON CONFLICT DO NOTHING`,
+                `INSERT INTO group_members (group_id, user_id)
+                 VALUES ($1, $2) ON CONFLICT DO NOTHING`,
                 [group.id, uid]
             );
         }
 
         await client.query("COMMIT");
-
         res.json({ ...group, member_ids: allMembers });
 
     } catch (err) {
@@ -443,6 +403,27 @@ app.post("/groups", async (req, res) => {
         res.status(500).json(err);
     } finally {
         client.release();
+    }
+});
+
+app.put("/groups/:id", async (req, res) => {
+    const { name, image_url, user_id } = req.body;
+
+    try {
+        const result = await db.query(
+            `UPDATE groups SET name = $1, image_url = $2
+             WHERE id = $3 AND created_by = $4
+             RETURNING *`,
+            [name, image_url, req.params.id, user_id]
+        );
+
+        if (!result.rows.length) {
+            return res.status(403).json({ error: "No autorizado o grupo no encontrado" });
+        }
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json(err);
     }
 });
 
@@ -454,14 +435,13 @@ app.get("/tasks/:groupId", async (req, res) => {
         const result = await db.query(
             `SELECT t.*, u.full_name AS assigned_name
              FROM tasks t
-             LEFT JOIN users u ON u.id=t.assigned_to
-             WHERE t.group_id=$1
+             LEFT JOIN users u ON u.id = t.assigned_to
+             WHERE t.group_id = $1
              ORDER BY t.created_at DESC`,
             [req.params.groupId]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
@@ -470,25 +450,22 @@ app.get("/tasks/:groupId", async (req, res) => {
 app.get("/tasks/user/:userId", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT t.*, g.name AS group_name,
-                    u.full_name AS assigned_name
+            `SELECT t.*, g.name AS group_name, u.full_name AS assigned_name
              FROM tasks t
-             JOIN groups g ON g.id=t.group_id
-             JOIN group_members gm
-               ON gm.group_id=t.group_id
-              AND gm.user_id=$1
-             LEFT JOIN users u ON u.id=t.assigned_to
+             JOIN groups g ON g.id = t.group_id
+             JOIN group_members gm ON gm.group_id = t.group_id AND gm.user_id = $1
+             LEFT JOIN users u ON u.id = t.assigned_to
              ORDER BY t.completed ASC, t.created_at DESC`,
             [req.params.userId]
         );
 
         res.json(result.rows);
-
     } catch (err) {
         res.status(500).json(err);
     }
 });
 
+/* ✅ CORREGIDO: ahora guarda task_type, target_value y current_value */
 app.post("/tasks", async (req, res) => {
     const {
         group_id,
@@ -496,14 +473,16 @@ app.post("/tasks", async (req, res) => {
         description,
         points,
         assigned_to,
-        created_by
+        created_by,
+        task_type,
+        target_value
     } = req.body;
 
     try {
         const result = await db.query(
             `INSERT INTO tasks
-             (group_id,title,description,points,assigned_to,created_by)
-             VALUES ($1,$2,$3,$4,$5,$6)
+             (group_id, title, description, points, assigned_to, created_by, task_type, target_value, current_value)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0)
              RETURNING *`,
             [
                 group_id,
@@ -511,13 +490,15 @@ app.post("/tasks", async (req, res) => {
                 description || "",
                 points || 100,
                 assigned_to || null,
-                created_by
+                created_by,
+                task_type || "messages",
+                target_value || 50
             ]
         );
 
         res.json(result.rows[0]);
-
     } catch (err) {
+        console.error("❌ crear tarea error:", err);
         res.status(500).json(err);
     }
 });
@@ -527,11 +508,8 @@ app.patch("/tasks/:taskId/complete", async (req, res) => {
 
     try {
         const result = await db.query(
-            `UPDATE tasks
-             SET completed=TRUE,
-                 completed_at=NOW()
-             WHERE id=$1
-             RETURNING *`,
+            `UPDATE tasks SET completed = TRUE, completed_at = NOW()
+             WHERE id = $1 RETURNING *`,
             [req.params.taskId]
         );
 
@@ -542,14 +520,11 @@ app.patch("/tasks/:taskId/complete", async (req, res) => {
         const task = result.rows[0];
 
         await db.query(
-            `UPDATE users
-             SET points = COALESCE(points,0) + $1
-             WHERE id=$2`,
+            `UPDATE users SET points = COALESCE(points, 0) + $1 WHERE id = $2`,
             [task.points, user_id]
         );
 
         res.json(task);
-
     } catch (err) {
         res.status(500).json(err);
     }
