@@ -276,10 +276,8 @@ onclick="toggleTaskPanel()">
 <div class="task-panel" id="task-panel">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
 <h4 style="margin:0;">Misiones</h4>
-
 <button class="btn-primary" onclick="openCreateTaskModal()">+ Nueva</button>
 </div>
-
 <div id="task-panel-list"></div>
 </div>
 
@@ -376,352 +374,330 @@ onclick="toggleTaskPanel()">
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
-const API_URL="https://fifa-chat-dr6w.onrender.com";
+const API_URL = "https://fifa-chat-dr6w.onrender.com";
 
-const userId=sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
-const userName=sessionStorage.getItem("userName") || localStorage.getItem("userName");
+const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+const userName = sessionStorage.getItem("userName") || localStorage.getItem("userName");
 
-if(!userId || !userName){
-location.href="login.html";
+if (!userId || !userName) {
+    location.href = "login.html";
 }
 
-document.getElementById("userHeaderName").textContent=userName;
+document.getElementById("userHeaderName").textContent = userName;
 
-const socket=io(API_URL);
+const socket = io(API_URL);
 
-let chatId=null;
-let currentGroup=null;
-let myFriends=[];
-let chatType="private";
+let chatId = null;
+let currentGroup = null;
+let myFriends = [];
+let chatType = "private";
 
 /* SIDEBAR */
-function toggleSidebar(e){
-if(e)e.preventDefault();
-
-const sb=document.getElementById("chat-sidebar");
-sb.classList.toggle("collapsed");
-sb.classList.toggle("open");
+function toggleSidebar(e) {
+    if (e) e.preventDefault();
+    const sb = document.getElementById("chat-sidebar");
+    sb.classList.toggle("collapsed");
+    sb.classList.toggle("open");
 }
 
 /* MODALS */
-function openModal(id){
-document.getElementById(id).classList.add("active");
+function openModal(id) {
+    document.getElementById(id).classList.add("active");
 }
 
-function closeModal(id){
-document.getElementById(id).classList.remove("active");
+function closeModal(id) {
+    document.getElementById(id).classList.remove("active");
 }
 
 /* EMOJI */
-document.querySelectorAll(".emoji-picker").forEach(p=>{
-p.querySelectorAll(".emoji-option").forEach(o=>{
-o.onclick=()=>{
-p.querySelectorAll(".emoji-option").forEach(x=>x.classList.remove("selected"));
-o.classList.add("selected");
-};
-});
+document.querySelectorAll(".emoji-picker").forEach(p => {
+    p.querySelectorAll(".emoji-option").forEach(o => {
+        o.onclick = () => {
+            p.querySelectorAll(".emoji-option").forEach(x => x.classList.remove("selected"));
+            o.classList.add("selected");
+        };
+    });
 });
 
-function selectedEmoji(id){
-return document.querySelector(`#${id} .selected`)?.dataset.emoji || "👥";
+function selectedEmoji(id) {
+    return document.querySelector(`#${id} .selected`)?.dataset.emoji || "👥";
 }
 
 /* CHAT */
-function joinChat(id,type,group=null){
+function joinChat(id, type, group = null) {
+    if (chatId) {
+        socket.emit("leave_chat", chatId);
+    }
 
-if(chatId){
-socket.emit("leave_chat",chatId);
-}
+    chatId = id;
+    chatType = type;
+    currentGroup = group;
 
-chatId=id;
-chatType=type;
-currentGroup=group;
+    socket.emit("join_chat", chatId);
 
-socket.emit("join_chat",chatId);
+    if (type === "group") {
+        document.getElementById("tasks-toggle-btn").style.display = "block";
+    } else {
+        document.getElementById("tasks-toggle-btn").style.display = "none";
+        closeTaskPanel();
+    }
 
-if(type==="group"){
-document.getElementById("tasks-toggle-btn").style.display="block";
-}else{
-document.getElementById("tasks-toggle-btn").style.display="none";
-closeTaskPanel();
-}
-
-loadMessages();
+    loadMessages();
 }
 
 /* FRIENDS */
-async function loadFriends(){
-const res=await fetch(`${API_URL}/friends/${userId}`);
-myFriends=await res.json();
+async function loadFriends() {
+    const res = await fetch(`${API_URL}/friends/${userId}`);
+    myFriends = await res.json();
 
-const c=document.getElementById("friends-sidebar");
-c.innerHTML="";
+    const c = document.getElementById("friends-sidebar");
+    c.innerHTML = "";
 
-myFriends.forEach(f=>{
-const div=document.createElement("div");
-div.className="friend-item";
-div.textContent="👤 "+f.full_name;
+    myFriends.forEach(f => {
+        const div = document.createElement("div");
+        div.className = "friend-item";
+        div.textContent = "👤 " + f.full_name;
 
-div.onclick=()=>{
-document.getElementById("current-group-name").textContent=f.full_name;
-document.getElementById("header-avatar").textContent="👤";
-document.getElementById("header-status-text").textContent="● Privado";
+        div.onclick = () => {
+            document.getElementById("current-group-name").textContent = f.full_name;
+            document.getElementById("header-avatar").textContent = "👤";
+            document.getElementById("header-status-text").textContent = "● Privado";
 
-const a=Math.min(+userId,+f.id);
-const b=Math.max(+userId,+f.id);
+            const a = Math.min(+userId, +f.id);
+            const b = Math.max(+userId, +f.id);
 
-joinChat(`${a}_${b}`,"private");
-};
+            joinChat(`${a}_${b}`, "private");
+        };
 
-c.appendChild(div);
-});
+        c.appendChild(div);
+    });
 }
 
 /* GROUPS */
-async function loadGroups(){
-const res=await fetch(`${API_URL}/groups/${userId}`);
-const groups=await res.json();
+async function loadGroups() {
+    const res = await fetch(`${API_URL}/groups/${userId}`);
+    const groups = await res.json();
 
-const c=document.getElementById("groups-sidebar");
-c.innerHTML="";
+    const c = document.getElementById("groups-sidebar");
+    c.innerHTML = "";
 
-groups.forEach(g=>{
-const div=document.createElement("div");
-div.className="friend-item";
+    groups.forEach(g => {
+        const div = document.createElement("div");
+        div.className = "friend-item";
 
-div.innerHTML=`
-<div class="group-item-row">
-<span>${g.image_url} ${g.name}</span>
-${g.created_by==userId ? `<button class="group-edit-btn">✏️</button>` : ""}
-</div>`;
+        div.innerHTML = `
+        <div class="group-item-row">
+            <span>${g.image_url} ${g.name}</span>
+            ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
+        </div>`;
 
-div.onclick=(e)=>{
-if(e.target.classList.contains("group-edit-btn")){
-openEditGroupModal(e,g.id,g.name,g.image_url);
-return;
-}
+        div.onclick = (e) => {
+            if (e.target.classList.contains("group-edit-btn")) {
+                openEditGroupModal(e, g.id, g.name, g.image_url);
+                return;
+            }
 
-document.getElementById("current-group-name").textContent=`${g.image_url} ${g.name}`;
-document.getElementById("header-avatar").textContent=g.image_url;
-document.getElementById("header-status-text").textContent="● Grupo";
+            document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
+            document.getElementById("header-avatar").textContent = g.image_url;
+            document.getElementById("header-status-text").textContent = "● Grupo";
 
-joinChat(`group_${g.id}`,"group",g);
-loadGroupTasks(g.id);
-};
+            joinChat(`group_${g.id}`, "group", g);
+            loadGroupTasks(g.id);
+        };
 
-c.appendChild(div);
-});
+        c.appendChild(div);
+    });
 }
 
 /* TASKS */
-function toggleTaskPanel(){
-const p=document.getElementById("task-panel");
-p.classList.toggle("open");
+function toggleTaskPanel() {
+    const p = document.getElementById("task-panel");
+    p.classList.toggle("open");
 
-if(p.classList.contains("open") && currentGroup){
-loadGroupTasks(currentGroup.id);
-}
-}
-
-function closeTaskPanel(){
-document.getElementById("task-panel").classList.remove("open");
+    if (p.classList.contains("open") && currentGroup) {
+        loadGroupTasks(currentGroup.id);
+    }
 }
 
-async function loadGroupTasks(groupId){
-const list=document.getElementById("task-panel-list");
-list.innerHTML="Cargando...";
+function closeTaskPanel() {
+    document.getElementById("task-panel").classList.remove("open");
+}
 
-const res=await fetch(`${API_URL}/tasks/${groupId}`);
-const tasks=await res.json();
+async function loadGroupTasks(groupId) {
+    const list = document.getElementById("task-panel-list");
+    list.innerHTML = "Cargando...";
 
-list.innerHTML="";
+    const res = await fetch(`${API_URL}/tasks/${groupId}`);
+    const tasks = await res.json();
 
-tasks.forEach(t=>{
-const current=t.current_value || 0;
-const target=t.target_value || 0;
-const percent=target>0 ? Math.min((current/target)*100,100):0;
+    list.innerHTML = "";
 
-const div=document.createElement("div");
-div.className=`task-mini-card ${t.completed?"done":""}`;
+    tasks.forEach(t => {
+        const current = t.current_value || 0;
+        const target = t.target_value || 0;
+        const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
 
-div.innerHTML=`
-<h4>${t.title}</h4>
-<div>${current}/${target}</div>
-<div class="progress-wrap">
-<div class="progress-bar" style="width:${percent}%"></div>
-</div>
-`;
+        const div = document.createElement("div");
+        div.className = `task-mini-card ${t.completed ? "done" : ""}`;
 
-list.appendChild(div);
-});
+        div.innerHTML = `
+        <h4>${t.title}</h4>
+        <div>${current}/${target}</div>
+        <div class="progress-wrap">
+            <div class="progress-bar" style="width:${percent}%"></div>
+        </div>`;
+
+        list.appendChild(div);
+    });
 }
 
 /* SOCKET EVENTS */
-socket.on("new_message",(msg)=>{
+socket.on("new_message", (msg) => {
+    if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
 
-if(String(msg.chat_id).trim()!==String(chatId).trim()) return;
+    renderMessage(msg);
 
-renderMessage(msg);
-
-if(
-chatType==="group" &&
-currentGroup &&
-document.getElementById("task-panel").classList.contains("open")
-){
-setTimeout(()=>loadGroupTasks(currentGroup.id),300);
-}
+    if (chatType === "group" && currentGroup &&
+        document.getElementById("task-panel").classList.contains("open")) {
+        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
+    }
 });
 
-socket.on("task_progress",()=>{
-
-if(
-chatType==="group" &&
-currentGroup &&
-document.getElementById("task-panel").classList.contains("open")
-){
-loadGroupTasks(currentGroup.id);
-}
+socket.on("task_progress", () => {
+    if (chatType === "group" && currentGroup) {
+        loadGroupTasks(currentGroup.id);
+    }
 });
 
 /* MESSAGES */
-async function loadMessages(){
-if(!chatId) return;
+async function loadMessages() {
+    if (!chatId) return;
 
-const res=await fetch(`${API_URL}/messages/${chatId}`);
-const msgs=await res.json();
+    const res = await fetch(`${API_URL}/messages/${chatId}`);
+    const msgs = await res.json();
 
-const c=document.getElementById("chat-messages-area");
-c.innerHTML="";
-msgs.forEach(renderMessage);
+    const c = document.getElementById("chat-messages-area");
+    c.innerHTML = "";
+    msgs.forEach(renderMessage);
 }
 
-function renderMessage(msg){
-const c=document.getElementById("chat-messages-area");
+function renderMessage(msg) {
+    const c = document.getElementById("chat-messages-area");
 
-const div=document.createElement("div");
-div.className=msg.username===userName ? "message-wrapper sent":"message-wrapper received";
+    const div = document.createElement("div");
+    div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
 
-div.innerHTML=`
-<div class="message-bubble">
-<b>${msg.username}</b><br>
-${msg.message}
-</div>`;
+    div.innerHTML = `
+    <div class="message-bubble">
+        <b>${msg.username}</b><br>
+        ${msg.message}
+    </div>`;
 
-c.appendChild(div);
-c.scrollTop=c.scrollHeight;
+    c.appendChild(div);
+    c.scrollTop = c.scrollHeight;
 }
 
 /* SEND */
-async function enviarMensaje(){
+async function enviarMensaje() {
+    const input = document.getElementById("input-chat-main");
+    const message = input.value.trim();
+    if (!message || !chatId) return;
 
-const input=document.getElementById("input-chat-main");
-const message=input.value.trim();
+    socket.emit("send_message", {
+        chat_id: chatId,
+        username: userName,
+        message
+    });
 
-if(!message || !chatId) return;
+    input.value = "";
 
-socket.emit("send_message",{
-chat_id:chatId,
-username:userName,
-message
-});
-
-if(
-chatType==="group" &&
-currentGroup &&
-document.getElementById("task-panel").classList.contains("open")
-){
-setTimeout(()=>loadGroupTasks(currentGroup.id),250);
+    if (chatType === "group" && currentGroup &&
+        document.getElementById("task-panel").classList.contains("open")) {
+        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
+    }
 }
 
-input.value="";
-}
-
-document.getElementById("input-chat-main").addEventListener("keydown",e=>{
-if(e.key==="Enter") enviarMensaje();
+document.getElementById("input-chat-main").addEventListener("keydown", e => {
+    if (e.key === "Enter") enviarMensaje();
 });
 
 /* GROUP CREATE */
-function openCreateGroupModal(){
-document.getElementById("friend-check-list").innerHTML=myFriends.map(f=>
-`<label class="friend-check-item"><input type="checkbox" value="${f.id}"> ${f.full_name}</label>`
-).join("");
+function openCreateGroupModal() {
+    document.getElementById("friend-check-list").innerHTML = myFriends.map(f =>
+        `<label class="friend-check-item"><input type="checkbox" value="${f.id}"> ${f.full_name}</label>`
+    ).join("");
 
-openModal("modal-create-group");
+    openModal("modal-create-group");
 }
 
-async function crearGrupo(){
-const name=document.getElementById("new-group-name").value.trim();
-const image_url=selectedEmoji("emoji-picker-create");
+async function crearGrupo() {
+    const name = document.getElementById("new-group-name").value.trim();
+    const image_url = selectedEmoji("emoji-picker-create");
 
-const checked=[...document.querySelectorAll("#friend-check-list input:checked")];
-const member_ids=checked.map(x=>+x.value);
+    const checked = [...document.querySelectorAll("#friend-check-list input:checked")];
+    const member_ids = checked.map(x => +x.value);
 
-await fetch(`${API_URL}/groups`,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-name,image_url,created_by:userId,member_ids
-})
-});
+    await fetch(`${API_URL}/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, image_url, created_by: userId, member_ids })
+    });
 
-closeModal("modal-create-group");
-loadGroups();
+    closeModal("modal-create-group");
+    loadGroups();
 }
 
-/* EDIT */
-function openEditGroupModal(e,id,name){
-e.stopPropagation();
-document.getElementById("edit-group-id").value=id;
-document.getElementById("edit-group-name").value=name;
-openModal("modal-edit-group");
+/* EDIT GROUP */
+function openEditGroupModal(e, id, name) {
+    e.stopPropagation();
+    document.getElementById("edit-group-id").value = id;
+    document.getElementById("edit-group-name").value = name;
+    openModal("modal-edit-group");
 }
 
-async function guardarEdicionGrupo(){
-const id=document.getElementById("edit-group-id").value;
-const name=document.getElementById("edit-group-name").value.trim();
-const image_url=selectedEmoji("emoji-picker-edit");
+async function guardarEdicionGrupo() {
+    const id = document.getElementById("edit-group-id").value;
+    const name = document.getElementById("edit-group-name").value.trim();
+    const image_url = selectedEmoji("emoji-picker-edit");
 
-await fetch(`${API_URL}/groups/${id}`,{
-method:"PUT",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-name,image_url,user_id:userId
-})
-});
+    await fetch(`${API_URL}/groups/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, image_url, user_id: userId })
+    });
 
-closeModal("modal-edit-group");
-loadGroups();
+    closeModal("modal-edit-group");
+    loadGroups();
 }
 
 /* CREATE TASK */
-function openCreateTaskModal(){
-openModal("modal-create-task");
+function openCreateTaskModal() {
+    openModal("modal-create-task");
 }
 
-async function crearTarea(){
+async function crearTarea() {
+    const title = document.getElementById("new-task-title").value.trim();
+    const description = document.getElementById("new-task-desc").value.trim();
+    const points = parseInt(document.getElementById("new-task-points").value);
+    const task_type = document.getElementById("new-task-type").value;
+    const target_value = parseInt(document.getElementById("new-task-target").value);
 
-const title=document.getElementById("new-task-title").value.trim();
-const description=document.getElementById("new-task-desc").value.trim();
-const points=parseInt(document.getElementById("new-task-points").value);
-const task_type=document.getElementById("new-task-type").value;
-const target_value=parseInt(document.getElementById("new-task-target").value);
+    await fetch(`${API_URL}/tasks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            group_id: currentGroup.id,
+            title,
+            description,
+            points,
+            task_type,
+            target_value,
+            created_by: userId
+        })
+    });
 
-await fetch(`${API_URL}/tasks`,{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-group_id:currentGroup.id,
-title,
-description,
-points,
-task_type,
-target_value,
-created_by:userId
-})
-});
-
-closeModal("modal-create-task");
-loadGroupTasks(currentGroup.id);
+    closeModal("modal-create-task");
+    loadGroupTasks(currentGroup.id);
 }
 
 /* INIT */
