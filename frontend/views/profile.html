@@ -44,6 +44,7 @@
     padding:6px;
     background:linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00);
     box-shadow:0 15px 35px rgba(0,0,0,.18);
+    position:relative;
 }
 
 .avatar-large{
@@ -118,6 +119,53 @@
     display:flex;
     gap:12px;
     flex-wrap:wrap;
+}
+
+.icon-tile{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    padding:10px 8px;
+    border-radius:14px;
+    border:2.5px solid #e5e5e5;
+    background:#fafafa;
+    transition:.2s;
+}
+
+.icon-tile:hover{
+    border-color:#0f62fe;
+    background:#eff4ff;
+}
+
+.icon-tile.equipped{
+    border-color:#0f62fe;
+    background:#eff4ff;
+}
+
+.icon-tile span.emoji{
+    font-size:28px;
+}
+
+.icon-tile span.name{
+    font-size:11px;
+    font-weight:600;
+    color:#555;
+    text-align:center;
+}
+
+.icon-tile.equipped span.name{
+    color:#0f62fe;
+}
+
+.icon-tile span.status{
+    font-size:10px;
+    color:#aaa;
+}
+
+.icon-tile.equipped span.status{
+    color:#0f62fe;
 }
 
 @media(max-width:700px){
@@ -240,61 +288,74 @@
 </div>
 
 <div class="form-group">
-<label>Marco de Perfil</label>
+    <label>Marco de Perfil</label>
 
-<div class="frame-selector">
+    <div class="frame-selector">
 
-<div class="frame-option active"
-data-frame="linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)"
-style="background:linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)">
+        <div class="frame-option active"
+        data-frame="linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)"
+        style="background:linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#ff416c,#ff4b2b)"
+        style="background:linear-gradient(135deg,#ff416c,#ff4b2b)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#7f00ff,#e100ff)"
+        style="background:linear-gradient(135deg,#7f00ff,#e100ff)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#11998e,#38ef7d)"
+        style="background:linear-gradient(135deg,#11998e,#38ef7d)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#f7971e,#ffd200)"
+        style="background:linear-gradient(135deg,#f7971e,#ffd200)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#ee0979,#ff6a00)"
+        style="background:linear-gradient(135deg,#ee0979,#ff6a00)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#4568dc,#b06ab3)"
+        style="background:linear-gradient(135deg,#4568dc,#b06ab3)">
+        </div>
+
+        <div class="frame-option"
+        data-frame="linear-gradient(135deg,#232526,#414345)"
+        style="background:linear-gradient(135deg,#232526,#414345)">
+        </div>
+
+    </div>
 </div>
 
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#ff416c,#ff4b2b)"
-style="background:linear-gradient(135deg,#ff416c,#ff4b2b)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#7f00ff,#e100ff)"
-style="background:linear-gradient(135deg,#7f00ff,#e100ff)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#11998e,#38ef7d)"
-style="background:linear-gradient(135deg,#11998e,#38ef7d)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#f7971e,#ffd200)"
-style="background:linear-gradient(135deg,#f7971e,#ffd200)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#ee0979,#ff6a00)"
-style="background:linear-gradient(135deg,#ee0979,#ff6a00)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#4568dc,#b06ab3)"
-style="background:linear-gradient(135deg,#4568dc,#b06ab3)">
-</div>
-
-<div class="frame-option"
-data-frame="linear-gradient(135deg,#232526,#414345)"
-style="background:linear-gradient(135deg,#232526,#414345)">
-</div>
-
-</div>
+<!-- ── ÍCONOS ADQUIRIDOS ── -->
+<div class="form-group">
+    <label>Íconos Adquiridos</label>
+    <div id="owned-icons-grid" style="
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(80px,1fr));
+        gap:10px;
+        margin-top:8px;
+    ">
+        <p style="color:#aaa;font-size:13px;margin:0;">Cargando íconos...</p>
+    </div>
 </div>
 
 <div class="action-row">
 
-<a href="login.html"
-id="logoutBtn"
-class="btn-secondary"
-style="background:#fff0f0;color:#ff4757;text-decoration:none;line-height:40px;text-align:center;">
-Cerrar Sesión
-</a>
+    <a href="login.html"
+    id="logoutBtn"
+    class="btn-secondary"
+    style="background:#fff0f0;color:#ff4757;text-decoration:none;line-height:40px;text-align:center;">
+    Cerrar Sesión
+    </a>
 
 </div>
 

@@ -4,13 +4,126 @@
     <meta charset="UTF-8">
     <title>Recompensas | FIFA 2026 Support</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .shop-section {
+            margin-top: 30px;
+        }
+
+        .shop-section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--fifa-navy, #001f3f);
+            margin-bottom: 16px;
+        }
+
+        .icon-shop-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 14px;
+        }
+
+        .icon-shop-card {
+            background: #fff;
+            border-radius: 18px;
+            padding: 18px 12px 14px;
+            text-align: center;
+            box-shadow: 0 4px 16px rgba(0,0,0,.07);
+            border: 2px solid transparent;
+            transition: .2s;
+        }
+
+        .icon-shop-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+        }
+
+        .icon-shop-card.owned {
+            border-color: #00d68f;
+            background: #f0fff8;
+        }
+
+        .icon-emoji {
+            font-size: 38px;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .icon-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .icon-cost {
+            font-size: 12px;
+            font-weight: 700;
+            color: #0f62fe;
+            margin-bottom: 10px;
+        }
+
+        .icon-buy-btn {
+            width: 100%;
+            padding: 8px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #0f62fe, #00c6ff);
+            color: #fff;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: .2s;
+        }
+
+        .icon-buy-btn:hover {
+            opacity: .88;
+        }
+
+        .icon-buy-btn:disabled {
+            background: #e0e0e0;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .icon-owned-badge {
+            display: inline-block;
+            background: #00d68f;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+        }
+
+        .shop-toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #111;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 14px;
+            font-weight: 600;
+            font-size: 14px;
+            opacity: 0;
+            transition: .3s;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        .shop-toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
 </head>
 <body>
     <div class="app-layout">
         <nav class="navbar-top">
             <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
             <div class="user-profile">
-                <span id="user-name-display" style="font-weight: bold; margin-right: 10px;">Invitado</span>
+                <span id="user-name-display" style="font-weight: bold; margin-right: 10px;">Cargando...</span>
                 <a href="profile.html" class="profile-trigger"><div class="avatar">👤</div></a>
             </div>
         </nav>
@@ -24,7 +137,7 @@
                 </div>
                 <div class="nav-section">
                     <p class="nav-section-title">Comunidad Local</p>
-                    <a href="help-mty.html" class="nav-item" id="nav-help-mty"><span>🤠</span> Ayuda MTY</a>
+                    <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
                 </div>
                 <div class="nav-section">
                     <p class="nav-section-title">Logística</p>
@@ -33,112 +146,177 @@
                 </div>
             </aside>
 
-<main class="chat-window" style="background: var(--bg-light); overflow-y: auto; padding: 20px;">
-    
-    <div class="reward-card-header" style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #001f3f 0%, #004080 100%); padding: 30px 40px; border-radius: 20px; margin-bottom: 30px; color: white; box-shadow: var(--shadow);">
-        
-        <div style="display: flex; align-items: center; gap: 30px;">
-            <div class="points-circle" style="border: 4px solid var(--fifa-cyan); width: 100px; height: 100px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.1);">
-                <span class="points-number" id="main-points" style="font-size: 24px; font-weight: bold; color: var(--fifa-cyan);">1250</span>
-                <small style="font-size: 10px; opacity: 0.8;">PUNTOS</small>
-            </div>
-                        
-    <div class="level-info">
-        <h3 style="margin: 0; font-size: 20px;">Usuario: <span id="card-user-name" style="color: var(--fifa-cyan);">Miki</span> 🏆</h3>
-        <div class="progress-bar-bg" style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 5px; margin-top: 10px; width: 200px;">
-            <div class="progress-bar-fill" style="background: var(--fifa-cyan); height: 100%; border-radius: 5px; width: 80%; box-shadow: 0 0 10px var(--fifa-cyan);"></div>
+            <main class="chat-window" style="background: var(--bg-light); overflow-y: auto; padding: 20px;">
+
+                <!-- HEADER DE PUNTOS -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #001f3f 0%, #004080 100%); padding: 30px 40px; border-radius: 20px; margin-bottom: 30px; color: white; box-shadow: var(--shadow);">
+                    <div style="display: flex; align-items: center; gap: 30px;">
+                        <div style="border: 4px solid var(--fifa-cyan); width: 100px; height: 100px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.1);">
+                            <span id="main-points" style="font-size: 24px; font-weight: bold; color: var(--fifa-cyan);">0</span>
+                            <small style="font-size: 10px; opacity: 0.8;">PUNTOS</small>
+                        </div>
+                        <div>
+                            <h3 style="margin: 0; font-size: 20px;">Usuario: <span id="card-user-name" style="color: var(--fifa-cyan);">...</span> 🏆</h3>
+                            <div style="background: rgba(255,255,255,0.2); height: 10px; border-radius: 5px; margin-top: 10px; width: 200px;">
+                                <div id="progress-bar" style="background: var(--fifa-cyan); height: 100%; border-radius: 5px; width: 0%; box-shadow: 0 0 10px var(--fifa-cyan); transition: width .6s;"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: rgba(255,255,255,0.15); padding: 10px 20px; border-radius: 15px; border: 1px solid var(--fifa-cyan); display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">🪙</span>
+                        <span style="font-size: 18px; font-weight: bold; color: var(--fifa-cyan);"><span id="nav-points-val">0</span> pts</span>
+                    </div>
+                </div>
+
+                <!-- TIENDA DE ÍCONOS -->
+                <div class="shop-section">
+                    <h2 class="shop-section-title">🎭 Íconos de Perfil</h2>
+                    <div class="icon-shop-grid" id="icon-shop-grid">
+                        <p style="color:#aaa;font-size:14px;">Cargando tienda...</p>
+                    </div>
+                </div>
+
+            </main>
         </div>
     </div>
-</div>
 
-<div class="points-badge-display" style="background: rgba(255, 255, 255, 0.15); padding: 10px 20px; border-radius: 15px; border: 1px solid var(--fifa-cyan); display: flex; align-items: center; gap: 10px; box-shadow: 0 0 15px rgba(0, 229, 255, 0.2);">
-    <span style="font-size: 20px;">🪙</span>
-    <span style="font-size: 18px; font-weight: bold; color: var(--fifa-cyan);"><span id="nav-points-val">1250</span> pts</span>
-</div>
-</div>
+    <div class="shop-toast" id="shop-toast"></div>
 
-<div class="view-content">
-<h2 style="margin-bottom: 20px; color: var(--fifa-navy);">Recompensas Disponibles</h2>
+    <script>
+    document.addEventListener("DOMContentLoaded", () => {
 
-<div class="badges-grid" id="recompensas-container">
-<div class="badge-card reward-item">
-    <img src="../imagenes/icon2.png" alt="Icono 1" class="reward-img">
-    <h3>Icon Común</h3>
-    <p class="cost">🏷️ 500 Puntos</p>
-    <button class="btn-primary" onclick="canjearPremio(500, 'Icon Común')">Canjear</button>
-</div>
+        const API    = "https://fifa-chat-dr6w.onrender.com";
+        const userId = sessionStorage.getItem("user_id");
 
-<div class="badge-card reward-item">
-    <img src="../imagenes/icon3.png" alt="Icono 2" class="reward-img">
-    <h3>Icon Raro</h3>
-    <p class="cost">🏷️ 1,500 Puntos</p>
-    <button class="btn-primary" onclick="canjearPremio(1500, 'Icon Raro')">Canjear</button>
-</div>
+        if (!userId) {
+            window.location.href = "login.html";
+            return;
+        }
 
-<div class="badge-card reward-item">
-    <img src="../imagenes/icon4.png" alt="Icono 3" class="reward-img">
-    <h3>Icon Épico</h3>
-    <p class="cost">🏷️ 5,000 Puntos</p>
-    <button class="btn-primary" onclick="canjearPremio(5000, 'Icon Épico')">Canjear</button>
-</div>
+        const ICON_CATALOG = [
+            { id: "star_gold",  emoji: "⭐", label: "Estrella Dorada",  cost: 200  },
+            { id: "crown",      emoji: "👑", label: "Corona",           cost: 500  },
+            { id: "fire",       emoji: "🔥", label: "Fuego",            cost: 150  },
+            { id: "trophy",     emoji: "🏆", label: "Trofeo",           cost: 300  },
+            { id: "diamond",    emoji: "💎", label: "Diamante",         cost: 750  },
+            { id: "rocket",     emoji: "🚀", label: "Cohete",           cost: 400  },
+            { id: "lightning",  emoji: "⚡", label: "Rayo",             cost: 250  },
+            { id: "shield",     emoji: "🛡️", label: "Escudo",           cost: 350  },
+            { id: "alien",      emoji: "👾", label: "Alien",            cost: 600  },
+            { id: "unicorn",    emoji: "🦄", label: "Unicornio",        cost: 800  },
+            { id: "octopus",    emoji: "🐙", label: "Pulpo",            cost: 450  },
+            { id: "dragon",     emoji: "🐉", label: "Dragón",           cost: 1000 },
+        ];
 
-<div class="badge-card reward-item">
-    <img src="../imagenes/icon5.png" alt="Icono 4" class="reward-img">
-    <h3>Icon Legendario</h3>
-    <p class="cost">🏷️ 5,000 Puntos</p>
-    <button class="btn-primary" onclick="canjearPremio(5000, 'Icon Legendario')">Canjear</button>
-</div>
+        let userPoints = 0;
+        let ownedIcons = [];
 
-<div class="badge-card reward-item">
-    <img src="../imagenes/icon1.png" alt="Icono 5" class="reward-img">
-    <h3>Icon Mítico</h3>
-    <p class="cost">🏷️ 1,000,000 Puntos</p>
-    <button class="btn-primary" onclick="canjearPremio(1000000, 'Icon Mítico')">Canjear</button>
-</div>
-</div>
-</div>
-</main>
-</div>
-</div>
+        function showToast(msg, ok = true) {
+            const t = document.getElementById("shop-toast");
+            t.textContent = msg;
+            t.style.background = ok ? "#111" : "#ff4757";
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 2800);
+        }
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-actualizarInterfaz();
-});
+        function updatePointsUI() {
+            document.getElementById("main-points").textContent    = userPoints;
+            document.getElementById("nav-points-val").textContent = userPoints;
+            // barra de progreso visual (cada 1000 pts = 100%)
+            const pct = Math.min((userPoints % 1000) / 10, 100);
+            document.getElementById("progress-bar").style.width = pct + "%";
+        }
 
-function actualizarInterfaz() {
-// aqui se carga el nombre del usuario
-const nombre = sessionStorage.getItem('userName') || "Miki";
+        function renderShop() {
+            const grid = document.getElementById("icon-shop-grid");
+            grid.innerHTML = "";
 
-// actualizar el header
-document.getElementById('user-name-display').textContent = nombre;
-// actualizar tarjeta azul
-document.getElementById('card-user-name').textContent = nombre;
+            ICON_CATALOG.forEach(icon => {
+                const owned  = ownedIcons.includes(icon.id);
+                const canBuy = !owned && userPoints >= icon.cost;
 
-// cargar puntos
-let puntos = localStorage.getItem('userPoints');
-if (puntos === null) {
-    puntos = "1250";
-    localStorage.setItem('userPoints', puntos);
-}
+                const card = document.createElement("div");
+                card.className = "icon-shop-card" + (owned ? " owned" : "");
+                card.innerHTML = `
+                    <span class="icon-emoji">${icon.emoji}</span>
+                    <div class="icon-label">${icon.label}</div>
+                    <div class="icon-cost">⭐ ${icon.cost} pts</div>
+                    ${owned
+                        ? `<span class="icon-owned-badge">✓ Adquirido</span>`
+                        : `<button class="icon-buy-btn"
+                                data-id="${icon.id}"
+                                data-cost="${icon.cost}"
+                                ${!canBuy ? "disabled" : ""}>
+                                ${userPoints < icon.cost ? "Sin puntos" : "Comprar"}
+                           </button>`
+                    }
+                `;
+                grid.appendChild(card);
+            });
 
-// actualizar marcadores
-document.getElementById('main-points').textContent = puntos;
-document.getElementById('nav-points-val').textContent = puntos;
-}
+            grid.querySelectorAll(".icon-buy-btn:not([disabled])").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const iconId = btn.dataset.id;
+                    const cost   = parseInt(btn.dataset.cost);
+                    btn.disabled = true;
+                    btn.textContent = "...";
 
-function canjearPremio(costo, nombre) {
-let puntosActuales = parseInt(localStorage.getItem('userPoints'));
+                    try {
+                        const res = await fetch(`${API}/users/${userId}/buy-icon`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ icon_id: iconId, cost })
+                        });
+                        const data = await res.json();
 
-if (puntosActuales >= costo) {
-    let nuevosPuntos = puntosActuales - costo;
-    localStorage.setItem('userPoints', nuevosPuntos);
-    alert(`¡Canje exitoso! 🎉\nHas obtenido: ${nombre}`);
-    actualizarInterfaz();
-} else {
-    alert(`❌ Puntos insuficientes.\nNecesitas ${costo} pts y tienes ${puntosActuales} pts.`);
-}
-}
-</script>
+                        if (!res.ok) {
+                            showToast(data.error || "Error al comprar", false);
+                            btn.disabled = false;
+                            btn.textContent = "Comprar";
+                            return;
+                        }
+
+                        userPoints = data.points;
+                        ownedIcons = data.owned_icons;
+                        updatePointsUI();
+                        showToast("¡Ícono adquirido! Equípalo en tu perfil 🎉");
+                        renderShop();
+
+                    } catch (e) {
+                        showToast("Error de conexión", false);
+                        btn.disabled = false;
+                        btn.textContent = "Comprar";
+                    }
+                });
+            });
+        }
+
+        async function init() {
+            try {
+                const [userRes, iconsRes] = await Promise.all([
+                    fetch(`${API}/users/${userId}`),
+                    fetch(`${API}/users/${userId}/icons`)
+                ]);
+
+                const user  = await userRes.json();
+                const icons = iconsRes.ok ? await iconsRes.json() : { icons: [] };
+
+                document.getElementById("user-name-display").textContent = user.full_name;
+                document.getElementById("card-user-name").textContent    = user.full_name;
+
+                userPoints = user.points || 0;
+                ownedIcons = icons.icons || [];
+
+                updatePointsUI();
+                renderShop();
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        init();
+    });
+    </script>
 </body>
 </html>

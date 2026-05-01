@@ -82,7 +82,6 @@ async function updateTaskProgress(chatId, groupId, username, messageType) {
         let countQuery, countParams;
 
         if (task.assigned_to) {
-            // Solo cuenta acciones del usuario asignado
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
@@ -91,7 +90,6 @@ async function updateTaskProgress(chatId, groupId, username, messageType) {
                   AND created_at >= $4`;
             countParams = [chatId, task.full_name, messageType, task.created_at];
         } else {
-            // Sin asignar: cualquiera del grupo contribuye
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
@@ -109,7 +107,6 @@ async function updateTaskProgress(chatId, groupId, username, messageType) {
         );
     }
 
-    // Completar tareas que alcanzaron su meta
     await db.query(
         `UPDATE tasks
          SET completed = TRUE, completed_at = NOW()
@@ -135,8 +132,6 @@ async function rewardCompletedTasks(groupId, taskType, chatId) {
         `, [groupId, taskType]);
 
         for (const task of completed.rows) {
-
-            /* DAR PUNTOS A TODOS LOS MIEMBROS */
             await db.query(`
                 UPDATE users
                 SET points = COALESCE(points,0) + $1
@@ -147,7 +142,6 @@ async function rewardCompletedTasks(groupId, taskType, chatId) {
                 )
             `, [task.points, groupId]);
 
-            /* AVISO EN TIEMPO REAL */
             io.to(`chat_${chatId}`).emit("task_completed", {
                 title: task.title,
                 points: task.points
@@ -182,13 +176,11 @@ io.on("connection", (socket) => {
 
             if (!chat_id || !message) return;
 
-            /* GUARDAR MENSAJE */
             await db.query(`
                 INSERT INTO messages (chat_id, username, message, message_type)
                 VALUES ($1,$2,$3,$4)
             `, [chat_id, username, message, message_type]);
 
-            /* ENVIAR MENSAJE */
             io.to(`chat_${chat_id}`).emit("new_message", {
                 chat_id,
                 username,
@@ -196,14 +188,11 @@ io.on("connection", (socket) => {
                 message_type
             });
 
-            /* SI ES CHAT DE GRUPO */
             if (chat_id.startsWith("group_")) {
 
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
-                /* MENSAJES */
                 if (message_type === "text") {
-
                     await db.query(`
                         UPDATE tasks
                         SET current_value = (
@@ -220,19 +209,16 @@ io.on("connection", (socket) => {
                     await rewardCompletedTasks(groupId, "messages", chat_id);
                 }
 
-                /* FOTOS / VIDEOS */
                 if (message_type === "media") {
                     await updateTaskProgress(chat_id, groupId, username, "media");
                     await rewardCompletedTasks(groupId, "media", chat_id);
                 }
 
-                /* LLAMADAS */
                 if (message_type === "call") {
                     await updateTaskProgress(chat_id, groupId, username, "call");
                     await rewardCompletedTasks(groupId, "call", chat_id);
                 }
 
-                /* REFRESCAR BARRA */
                 io.to(`chat_${chat_id}`).emit("task_progress");
             }
 
@@ -308,7 +294,9 @@ app.post("/login", async (req, res) => {
 app.get("/users/:id", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT id, full_name, email, COALESCE(points, 0) AS points
+            `SELECT id, full_name, email, COALESCE(points, 0) AS points,
+                    profile_photo, profile_frame, equipped_icon,
+                    COALESCE(owned_icons, '[]'::jsonb) AS owned_icons
              FROM users WHERE id = $1 LIMIT 1`,
             [req.params.id]
         );
@@ -329,6 +317,94 @@ app.put("/users/:id", async (req, res) => {
             [full_name, email, req.params.id]
         );
         if (!result.rows.length) return res.status(404).json({ error: "Usuario no encontrado" });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.put("/users/:id/photo", async (req, res) => {
+    const { profile_photo, profile_frame } = req.body;
+    try {
+        const result = await db.query(`
+            UPDATE users
+            SET profile_photo = $1,
+                profile_frame = $2
+            WHERE id = $3
+            RETURNING profile_photo, profile_frame
+        `, [profile_photo, profile_frame, req.params.id]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
+   ICONS
+====================== */
+app.get("/users/:id/icons", async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT COALESCE(owned_icons, '[]'::jsonb) AS icons,
+                    equipped_icon
+             FROM users WHERE id = $1 LIMIT 1`,
+            [req.params.id]
+        );
+        if (!result.rows.length) return res.status(404).json({ error: "Usuario no encontrado" });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.post("/users/:id/buy-icon", async (req, res) => {
+    const { icon_id, cost } = req.body;
+    const client = await db.connect();
+    try {
+        await client.query("BEGIN");
+
+        const userRes = await client.query(
+            `SELECT points, owned_icons FROM users WHERE id = $1 FOR UPDATE`,
+            [req.params.id]
+        );
+        if (!userRes.rows.length) throw new Error("Usuario no encontrado");
+
+        const user = userRes.rows[0];
+        const owned = user.owned_icons || [];
+
+        if (owned.includes(icon_id)) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ error: "Ya tienes este ícono" });
+        }
+        if ((user.points || 0) < cost) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ error: "Puntos insuficientes" });
+        }
+
+        const newOwned = [...owned, icon_id];
+        await client.query(
+            `UPDATE users SET points = points - $1, owned_icons = $2 WHERE id = $3`,
+            [cost, JSON.stringify(newOwned), req.params.id]
+        );
+
+        await client.query("COMMIT");
+        res.json({ owned_icons: newOwned, points: (user.points || 0) - cost });
+    } catch (err) {
+        await client.query("ROLLBACK");
+        res.status(500).json(err);
+    } finally {
+        client.release();
+    }
+});
+
+app.put("/users/:id/equip-icon", async (req, res) => {
+    const { icon_id } = req.body;
+    try {
+        const result = await db.query(
+            `UPDATE users SET equipped_icon = $1 WHERE id = $2
+             RETURNING equipped_icon`,
+            [icon_id || null, req.params.id]
+        );
         res.json(result.rows[0]);
     } catch (err) {
         res.status(500).json(err);
@@ -424,26 +500,6 @@ app.get("/groups/:groupId/members", async (req, res) => {
     }
 });
 
-
-app.put("/users/:id/photo", async (req, res) => {
-    const { profile_photo, profile_frame } = req.body;
-
-    try {
-        const result = await db.query(`
-            UPDATE users
-            SET profile_photo = $1,
-                profile_frame = $2
-            WHERE id = $3
-            RETURNING profile_photo, profile_frame
-        `, [profile_photo, profile_frame, req.params.id]);
-
-        res.json(result.rows[0]);
-
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
 app.post("/groups", async (req, res) => {
     const { name, image_url, created_by, member_ids } = req.body;
     const client = await db.connect();
@@ -465,8 +521,6 @@ app.post("/groups", async (req, res) => {
         }
 
         await client.query("COMMIT");
-
-        // Crear las 3 tareas predefinidas automáticamente
         await createDefaultTasks(group.id, created_by);
 
         res.json({ ...group, member_ids: allMembers });
