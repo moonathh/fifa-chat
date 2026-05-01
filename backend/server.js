@@ -121,6 +121,44 @@ async function updateTaskProgress(chatId, groupId, username, messageType) {
     );
 }
 
+async function rewardCompletedTasks(groupId, taskType, chatId) {
+    try {
+        const completed = await db.query(`
+            UPDATE tasks
+            SET completed = TRUE,
+                completed_at = NOW()
+            WHERE group_id = $1
+            AND task_type = $2
+            AND completed = FALSE
+            AND current_value >= target_value
+            RETURNING *
+        `, [groupId, taskType]);
+
+        for (const task of completed.rows) {
+
+            /* DAR PUNTOS A TODOS LOS MIEMBROS */
+            await db.query(`
+                UPDATE users
+                SET points = COALESCE(points,0) + $1
+                WHERE id IN (
+                    SELECT user_id
+                    FROM group_members
+                    WHERE group_id = $2
+                )
+            `, [task.points, groupId]);
+
+            /* AVISO EN TIEMPO REAL */
+            io.to(`chat_${chatId}`).emit("task_completed", {
+                title: task.title,
+                points: task.points
+            });
+        }
+
+    } catch (err) {
+        console.log("ERROR rewardCompletedTasks:", err);
+    }
+}
+
 /* ======================
    SOCKET CHAT
 ====================== */
@@ -150,7 +188,7 @@ io.on("connection", (socket) => {
                 VALUES ($1,$2,$3,$4)
             `, [chat_id, username, message, message_type]);
 
-            /* ENVIAR MENSAJE AL CHAT */
+            /* ENVIAR MENSAJE */
             io.to(`chat_${chat_id}`).emit("new_message", {
                 chat_id,
                 username,
@@ -158,13 +196,14 @@ io.on("connection", (socket) => {
                 message_type
             });
 
-            /* SI ES GRUPO */
+            /* SI ES CHAT DE GRUPO */
             if (chat_id.startsWith("group_")) {
 
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
-                /* CONTAR MENSAJES */
+                /* MENSAJES */
                 if (message_type === "text") {
+
                     await db.query(`
                         UPDATE tasks
                         SET current_value = (
@@ -175,28 +214,22 @@ io.on("connection", (socket) => {
                         )
                         WHERE group_id = $2
                         AND task_type = 'messages'
-                        AND completed = false
+                        AND completed = FALSE
                     `, [chat_id, groupId]);
 
-                    await db.query(`
-                        UPDATE tasks
-                        SET completed = true,
-                            completed_at = NOW()
-                        WHERE group_id = $1
-                        AND task_type = 'messages'
-                        AND completed = false
-                        AND current_value >= target_value
-                    `, [groupId]);
+                    await rewardCompletedTasks(groupId, "messages", chat_id);
                 }
 
-                /* MULTIMEDIA */
+                /* FOTOS / VIDEOS */
                 if (message_type === "media") {
                     await updateTaskProgress(chat_id, groupId, username, "media");
+                    await rewardCompletedTasks(groupId, "media", chat_id);
                 }
 
                 /* LLAMADAS */
                 if (message_type === "call") {
                     await updateTaskProgress(chat_id, groupId, username, "call");
+                    await rewardCompletedTasks(groupId, "call", chat_id);
                 }
 
                 /* REFRESCAR BARRA */
