@@ -184,12 +184,101 @@ cursor:pointer;
 }
 
 .task-panel-toggle{
-padding:8px 14px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-background:#0b2341;
-color:#fff;
+    background:#fff;
+    border:1px solid #dcdcdc;
+    border-radius:8px;
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:12px;
+    color:var(--fifa-navy);
+    font-weight:600;
+    transition:.2s;
+}
+.task-panel-toggle:hover{
+    background:#f7f7f7;
+}
+
+/* ── PANEL ── */
+.task-panel{
+    border-top:1px solid #eee;
+    padding:10px 14px;
+    background:#fafafa;
+    display:none;
+}
+.task-panel.open{
+    display:block;
+}
+
+.task-panel-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:10px;
+}
+
+.task-panel-header h4{
+    margin:0;
+    font-size:14px;
+    color:var(--fifa-navy);
+    font-weight:700;
+}
+
+/* ── CARD TAREA ── */
+.task-mini-card{
+    background:#fff;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    border:1px solid #eee;
+    box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+
+.task-mini-card.done{
+    opacity:.65;
+}
+
+/* ── TITULO ── */
+.task-mini-card h4{
+    margin:0;
+    font-size:13px;
+    font-weight:700;
+    color:var(--fifa-navy);
+}
+
+/* ── DESCRIPCIÓN ── */
+.task-mini-card p{
+    margin:4px 0 0;
+    font-size:11px;
+    color:#777;
+    line-height:1.35;
+}
+
+/* ── BARRA ── */
+.task-mini-card .progress-wrap{
+    height:6px;
+    background:#ececec;
+    border-radius:20px;
+    overflow:hidden;
+    margin-top:7px;
+}
+
+.task-mini-card .progress-bar{
+    height:100%;
+    background:var(--fifa-cyan);
+}
+
+/* ── TEXTO PROGRESO ── */
+.task-mini-card .progress-text{
+    margin-top:5px;
+    font-size:11px;
+    color:#999;
+}
+
+/* ── CHECK ── */
+.task-done-icon{
+    font-size:14px;
+    color:#2ecc71;
+    font-weight:bold;
 }
 </style>
 </head>
