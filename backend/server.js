@@ -105,6 +105,49 @@ app.post("/login", async (req, res) => {
 });
 
 /* ======================================
+   USER PROFILE
+====================================== */
+app.get("/users/:id", async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT id, full_name, email, points
+             FROM users
+             WHERE id = $1
+             LIMIT 1`,
+            [req.params.id]
+        );
+
+        if (!result.rows.length) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.put("/users/:id", async (req, res) => {
+    const { full_name, email } = req.body;
+
+    try {
+        const result = await db.query(
+            `UPDATE users
+             SET full_name=$1, email=$2
+             WHERE id=$3
+             RETURNING id, full_name, email, points`,
+            [full_name, email, req.params.id]
+        );
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================================
    FRIENDS
 ====================================== */
 app.get("/friends/:userId", async (req, res) => {
