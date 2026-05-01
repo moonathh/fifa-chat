@@ -8,194 +8,282 @@
 
 <style>
 .modal-overlay{
-display:none;
-position:fixed;
-inset:0;
-background:rgba(0,0,0,.55);
-z-index:9999;
-align-items:center;
-justify-content:center;
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    z-index:9999;
+    align-items:center;
+    justify-content:center;
 }
-.modal-overlay.active{display:flex;}
+.modal-overlay.active{ display:flex; }
 
 .modal-box{
-background:#fff;
-width:90%;
-max-width:460px;
-border-radius:18px;
-padding:28px;
-box-shadow:0 20px 50px rgba(0,0,0,.25);
+    background:#fff;
+    width:90%;
+    max-width:480px;
+    border-radius:18px;
+    padding:28px;
+    box-shadow:0 20px 50px rgba(0,0,0,.25);
+    max-height:90vh;
+    overflow-y:auto;
 }
 
 .modal-box h3{
-margin:0 0 18px;
-color:#0b2341;
+    margin:0 0 18px;
+    color:#0b2341;
 }
 
 .modal-box label{
-display:block;
-font-size:12px;
-font-weight:700;
-margin-bottom:5px;
-margin-top:10px;
+    display:block;
+    font-size:12px;
+    font-weight:700;
+    margin-bottom:5px;
+    margin-top:14px;
+    color:#555;
+    text-transform:uppercase;
+    letter-spacing:.5px;
 }
 
 .modal-box input,
 .modal-box select{
-width:100%;
-padding:11px;
-border:1px solid #ddd;
-border-radius:8px;
-font-size:14px;
+    width:100%;
+    padding:11px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:14px;
+    box-sizing:border-box;
 }
 
 .modal-actions{
-display:flex;
-gap:10px;
-margin-top:18px;
+    display:flex;
+    gap:10px;
+    margin-top:20px;
 }
 
 .modal-actions button{
-flex:1;
-padding:12px;
-border:none;
-border-radius:8px;
-font-weight:700;
-cursor:pointer;
+    flex:1;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    font-weight:700;
+    cursor:pointer;
+    font-size:14px;
 }
 
-.btn-cancel{background:#eceff3;}
-.btn-primary{background:#00bcd4;color:#fff;}
+.btn-cancel{ background:#eceff3; color:#333; }
+.btn-primary{ background:#00bcd4; color:#fff; }
 
+/* Task type selector */
+.task-type-grid{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap:8px;
+    margin-top:8px;
+}
+
+.task-type-option{
+    border:2px solid #eee;
+    border-radius:10px;
+    padding:12px 8px;
+    text-align:center;
+    cursor:pointer;
+    transition:all .2s;
+}
+
+.task-type-option:hover{ border-color:#00bcd4; }
+
+.task-type-option.selected{
+    border-color:#00bcd4;
+    background:#e0f7fa;
+}
+
+.task-type-option .icon{ font-size:22px; margin-bottom:4px; }
+.task-type-option .label{ font-size:11px; font-weight:700; color:#444; }
+
+/* Points slider */
+.points-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:8px;
+}
+
+.points-row input[type=range]{
+    flex:1;
+    border:none;
+    padding:0;
+}
+
+.points-badge{
+    background:#0b2341;
+    color:#fff;
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:13px;
+    font-weight:700;
+    min-width:52px;
+    text-align:center;
+}
+
+/* SIDEBAR */
 .chat-sidebar{
-width:320px;
-transition:.25s;
-overflow:auto;
+    width:320px;
+    transition:.25s;
+    overflow:auto;
 }
-
-.chat-sidebar.collapsed{
-width:0;
-overflow:hidden;
-}
-
-.chat-sidebar.open{width:320px;}
+.chat-sidebar.collapsed{ width:0; overflow:hidden; }
+.chat-sidebar.open{ width:320px; }
 
 .friend-item{
-padding:12px 14px;
-cursor:pointer;
-border-bottom:1px solid #f0f0f0;
+    padding:12px 14px;
+    cursor:pointer;
+    border-bottom:1px solid #f0f0f0;
 }
-
-.friend-item:hover{background:#f7f7f7;}
+.friend-item:hover{ background:#f7f7f7; }
 
 .group-item-row{
-display:flex;
-justify-content:space-between;
-align-items:center;
-gap:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
 }
 
 .group-edit-btn{
-border:none;
-background:none;
-cursor:pointer;
-font-size:14px;
+    border:none;
+    background:none;
+    cursor:pointer;
+    font-size:14px;
 }
 
 .create-group-btn{
-margin:10px;
-padding:12px;
-width:calc(100% - 20px);
-border:none;
-border-radius:8px;
-background:#00bcd4;
-color:#fff;
-font-weight:700;
-cursor:pointer;
+    margin:10px;
+    padding:12px;
+    width:calc(100% - 20px);
+    border:none;
+    border-radius:8px;
+    background:#00bcd4;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
 }
 
 .emoji-picker{
-display:flex;
-flex-wrap:wrap;
-gap:8px;
-margin-top:8px;
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-top:8px;
 }
 
 .emoji-option{
-font-size:24px;
-cursor:pointer;
-padding:6px;
-border-radius:8px;
+    font-size:24px;
+    cursor:pointer;
+    padding:6px;
+    border-radius:8px;
 }
-
 .emoji-option.selected{
-background:#dff9ff;
-border:2px solid #00bcd4;
+    background:#dff9ff;
+    border:2px solid #00bcd4;
 }
 
 .friend-check-list{
-max-height:180px;
-overflow:auto;
-border:1px solid #eee;
-padding:10px;
-border-radius:8px;
-margin-top:8px;
+    max-height:180px;
+    overflow:auto;
+    border:1px solid #eee;
+    padding:10px;
+    border-radius:8px;
+    margin-top:8px;
 }
 
 .friend-check-item{
-display:flex;
-gap:10px;
-padding:7px;
-cursor:pointer;
+    display:flex;
+    gap:10px;
+    padding:7px;
+    cursor:pointer;
 }
 
-/* TASKS */
+/* TASKS PANEL */
 .task-panel-toggle{
-background:#fff;
-border:1px solid #ddd;
-border-radius:8px;
-padding:5px 10px;
-cursor:pointer;
-font-size:12px;
-font-weight:700;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:8px;
+    padding:5px 10px;
+    cursor:pointer;
+    font-size:12px;
+    font-weight:700;
 }
 
 .task-panel{
-display:none;
-padding:10px 14px;
-border-top:1px solid #eee;
-background:#fafafa;
+    display:none;
+    padding:10px 14px;
+    border-top:1px solid #eee;
+    background:#fafafa;
 }
-
-.task-panel.open{display:block;}
+.task-panel.open{ display:block; }
 
 .task-mini-card{
-background:#fff;
-border:1px solid #eee;
-border-radius:10px;
-padding:9px 10px;
-margin-bottom:8px;
-font-size:12px;
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    font-size:12px;
+}
+.task-mini-card.done{ opacity:.55; }
+
+.task-mini-card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    margin-bottom:4px;
 }
 
-.task-mini-card.done{opacity:.6;}
-
 .task-mini-card h4{
-margin:0 0 4px;
-font-size:13px;
+    margin:0;
+    font-size:13px;
+    color:#0b2341;
+}
+
+.task-type-badge{
+    font-size:10px;
+    padding:2px 7px;
+    border-radius:20px;
+    font-weight:700;
+    background:#e0f7fa;
+    color:#00838f;
+}
+
+.task-assigned{
+    font-size:11px;
+    color:#888;
+    margin-bottom:4px;
+}
+
+.task-progress-label{
+    display:flex;
+    justify-content:space-between;
+    color:#666;
+    margin-bottom:4px;
 }
 
 .progress-wrap{
-height:6px;
-background:#eee;
-border-radius:999px;
-overflow:hidden;
-margin-top:6px;
+    height:6px;
+    background:#eee;
+    border-radius:999px;
+    overflow:hidden;
 }
-
 .progress-bar{
-height:100%;
-background:#00bcd4;
+    height:100%;
+    background:#00bcd4;
+    transition:width .4s ease;
+}
+.progress-bar.done{ background:#4caf50; }
+
+.task-points{
+    font-size:11px;
+    color:#888;
+    margin-top:4px;
+    text-align:right;
 }
 </style>
 </head>
@@ -205,170 +293,168 @@ background:#00bcd4;
 <div class="app-layout">
 
 <nav class="navbar-top">
-<div class="logo-area">🏆 FIFA 2026™ Support Chat</div>
-
-<div class="user-profile">
-<span id="userHeaderName">Invitado</span>
-<a href="profile.html"><div class="avatar">👤</div></a>
-</div>
+    <div class="logo-area">🏆 FIFA 2026™ Support Chat</div>
+    <div class="user-profile">
+        <span id="userHeaderName">Invitado</span>
+        <a href="profile.html"><div class="avatar">👤</div></a>
+    </div>
 </nav>
 
 <div class="main-container">
 
-<!-- MENU -->
-<aside class="sidebar-nav">
-<div class="nav-section">
-<p class="nav-section-title">Comunicación</p>
-<a href="#" class="nav-item active" onclick="toggleSidebar(event)">💬 Chats</a>
-<a href="social.html" class="nav-item">👥 Social</a>
-</div>
+    <!-- MENU -->
+    <aside class="sidebar-nav">
+        <div class="nav-section">
+            <p class="nav-section-title">Comunicación</p>
+            <a href="#" class="nav-item active" onclick="toggleSidebar(event)">💬 Chats</a>
+            <a href="social.html" class="nav-item">👥 Social</a>
+        </div>
+        <div class="nav-section">
+            <p class="nav-section-title">Comunidad</p>
+            <a href="help-mty.html" class="nav-item">🤠 Ayuda MTY</a>
+        </div>
+        <div class="nav-section">
+            <p class="nav-section-title">Extras</p>
+            <a href="task.html" class="nav-item">📋 Tareas</a>
+            <a href="rewards.html" class="nav-item">🎁 Tienda</a>
+        </div>
+    </aside>
 
-<div class="nav-section">
-<p class="nav-section-title">Comunidad</p>
-<a href="help-mty.html" class="nav-item">🤠 Ayuda MTY</a>
-</div>
+    <!-- CHAT SIDEBAR -->
+    <aside class="chat-sidebar collapsed" id="chat-sidebar">
+        <div style="padding:15px;font-weight:700;">💬 Conversaciones</div>
+        <div style="padding:10px 15px;font-size:12px;">Amigos</div>
+        <div id="friends-sidebar"></div>
+        <div style="padding:10px 15px;font-size:12px;">Grupos</div>
+        <div id="groups-sidebar"></div>
+        <button class="create-group-btn" onclick="openCreateGroupModal()">➕ Crear grupo</button>
+    </aside>
 
-<div class="nav-section">
-<p class="nav-section-title">Extras</p>
-<a href="task.html" class="nav-item">📋 Tareas</a>
-<a href="rewards.html" class="nav-item">🎁 Tienda</a>
-</div>
-</aside>
+    <!-- CHAT MAIN -->
+    <main class="chat-window">
 
-<!-- SIDEBAR -->
-<aside class="chat-sidebar collapsed" id="chat-sidebar">
+        <header class="chat-header">
+            <div style="display:flex;gap:10px;align-items:center;">
+                <div id="header-avatar">👤</div>
+                <div>
+                    <strong id="current-group-name">@Chat</strong>
+                    <p id="header-status-text" style="margin:0;font-size:12px;">● En línea</p>
+                </div>
+            </div>
+            <button id="tasks-toggle-btn" class="task-panel-toggle" style="display:none" onclick="toggleTaskPanel()">
+                📋 Tareas
+            </button>
+        </header>
 
-<div style="padding:15px;font-weight:700;">💬 Conversaciones</div>
+        <div class="task-panel" id="task-panel">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                <h4 style="margin:0;">Misiones del grupo</h4>
+                <button class="btn-primary" style="padding:6px 14px;font-size:12px;" onclick="openCreateTaskModal()">+ Nueva</button>
+            </div>
+            <div id="task-panel-list"></div>
+        </div>
 
-<div style="padding:10px 15px;font-size:12px;">Amigos</div>
-<div id="friends-sidebar"></div>
+        <section class="chat-messages" id="chat-messages-area"></section>
 
-<div style="padding:10px 15px;font-size:12px;">Grupos</div>
-<div id="groups-sidebar"></div>
+        <footer class="input-bar">
+            <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
+            <button onclick="enviarMensaje()">Enviar</button>
+        </footer>
 
-<button class="create-group-btn" onclick="openCreateGroupModal()">
-➕ Crear grupo
-</button>
-
-</aside>
-
-<!-- CHAT -->
-<main class="chat-window">
-
-<header class="chat-header">
-<div style="display:flex;gap:10px;align-items:center;">
-<div id="header-avatar">👤</div>
-
-<div>
-<strong id="current-group-name">@Chat</strong>
-<p id="header-status-text" style="margin:0;font-size:12px;">● En línea</p>
-</div>
-</div>
-
-<button id="tasks-toggle-btn"
-class="task-panel-toggle"
-style="display:none"
-onclick="toggleTaskPanel()">
-📋 Tareas
-</button>
-</header>
-
-<div class="task-panel" id="task-panel">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-<h4 style="margin:0;">Misiones</h4>
-<button class="btn-primary" onclick="openCreateTaskModal()">+ Nueva</button>
-</div>
-<div id="task-panel-list"></div>
-</div>
-
-<section class="chat-messages" id="chat-messages-area"></section>
-
-<footer class="input-bar">
-<input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
-<button onclick="enviarMensaje()">Enviar</button>
-</footer>
-
-</main>
+    </main>
 </div>
 </div>
 
-<!-- MODALS -->
+<!-- MODAL: Crear Grupo -->
 <div class="modal-overlay" id="modal-create-group">
-<div class="modal-box">
-<h3>Crear Grupo</h3>
-
-<label>Nombre</label>
-<input id="new-group-name">
-
-<label>Icono</label>
-<div class="emoji-picker" id="emoji-picker-create">
-<span class="emoji-option selected" data-emoji="👥">👥</span>
-<span class="emoji-option" data-emoji="⚽">⚽</span>
-<span class="emoji-option" data-emoji="🏆">🏆</span>
-<span class="emoji-option" data-emoji="🔥">🔥</span>
+    <div class="modal-box">
+        <h3>Crear Grupo</h3>
+        <label>Nombre</label>
+        <input id="new-group-name">
+        <label>Icono</label>
+        <div class="emoji-picker" id="emoji-picker-create">
+            <span class="emoji-option selected" data-emoji="👥">👥</span>
+            <span class="emoji-option" data-emoji="⚽">⚽</span>
+            <span class="emoji-option" data-emoji="🏆">🏆</span>
+            <span class="emoji-option" data-emoji="🔥">🔥</span>
+        </div>
+        <label>Amigos</label>
+        <div class="friend-check-list" id="friend-check-list"></div>
+        <small id="create-group-error" style="color:red;"></small>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-create-group')">Cancelar</button>
+            <button class="btn-primary" onclick="crearGrupo()">Crear</button>
+        </div>
+    </div>
 </div>
 
-<label>Amigos</label>
-<div class="friend-check-list" id="friend-check-list"></div>
-
-<small id="create-group-error" style="color:red;"></small>
-
-<div class="modal-actions">
-<button class="btn-cancel" onclick="closeModal('modal-create-group')">Cancelar</button>
-<button class="btn-primary" onclick="crearGrupo()">Crear</button>
-</div>
-</div>
-</div>
-
+<!-- MODAL: Editar Grupo -->
 <div class="modal-overlay" id="modal-edit-group">
-<div class="modal-box">
-<h3>Editar Grupo</h3>
-
-<input type="hidden" id="edit-group-id">
-
-<label>Nombre</label>
-<input id="edit-group-name">
-
-<label>Icono</label>
-<div class="emoji-picker" id="emoji-picker-edit">
-<span class="emoji-option selected" data-emoji="👥">👥</span>
-<span class="emoji-option" data-emoji="⚽">⚽</span>
-<span class="emoji-option" data-emoji="🏆">🏆</span>
+    <div class="modal-box">
+        <h3>Editar Grupo</h3>
+        <input type="hidden" id="edit-group-id">
+        <label>Nombre</label>
+        <input id="edit-group-name">
+        <label>Icono</label>
+        <div class="emoji-picker" id="emoji-picker-edit">
+            <span class="emoji-option selected" data-emoji="👥">👥</span>
+            <span class="emoji-option" data-emoji="⚽">⚽</span>
+            <span class="emoji-option" data-emoji="🏆">🏆</span>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
+            <button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
+        </div>
+    </div>
 </div>
 
-<div class="modal-actions">
-<button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
-<button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
-</div>
-</div>
-</div>
-
+<!-- MODAL: Crear Tarea -->
 <div class="modal-overlay" id="modal-create-task">
-<div class="modal-box">
-<h3>Nueva tarea automática</h3>
+    <div class="modal-box">
+        <h3>Nueva Misión</h3>
 
-<label>Título</label>
-<input id="new-task-title">
+        <label>Tipo de misión</label>
+        <div class="task-type-grid" id="task-type-grid">
+            <div class="task-type-option selected" data-type="messages" onclick="selectTaskType(this)">
+                <div class="icon">💬</div>
+                <div class="label">Mensajes</div>
+            </div>
+            <div class="task-type-option" data-type="media" onclick="selectTaskType(this)">
+                <div class="icon">📸</div>
+                <div class="label">Multimedia</div>
+            </div>
+            <div class="task-type-option" data-type="call" onclick="selectTaskType(this)">
+                <div class="icon">📹</div>
+                <div class="label">Llamadas</div>
+            </div>
+        </div>
 
-<label>Descripción</label>
-<input id="new-task-desc">
+        <label>Título</label>
+        <input id="new-task-title" placeholder="Ej: Escritor del grupo">
 
-<label>Tipo</label>
-<select id="new-task-type">
-<option value="messages">Mensajes enviados</option>
-</select>
+        <label>Descripción (opcional)</label>
+        <input id="new-task-desc" placeholder="Ej: Escribe mensajes en el grupo">
 
-<label>Meta</label>
-<input type="number" id="new-task-target" value="50">
+        <label id="target-label">Meta (número de mensajes)</label>
+        <input type="number" id="new-task-target" value="10" min="1">
 
-<label>Puntos</label>
-<input type="number" id="new-task-points" value="100">
+        <label>Puntos (máx. 1000)</label>
+        <div class="points-row">
+            <input type="range" id="new-task-points-slider" min="50" max="1000" step="50" value="100"
+                oninput="document.getElementById('new-task-points-badge').textContent=this.value">
+            <span class="points-badge" id="new-task-points-badge">100</span>
+        </div>
 
-<div class="modal-actions">
-<button class="btn-cancel" onclick="closeModal('modal-create-task')">Cancelar</button>
-<button class="btn-primary" onclick="crearTarea()">Crear</button>
-</div>
-</div>
+        <label>Asignar a (opcional)</label>
+        <select id="new-task-assigned">
+            <option value="">— Cualquiera del grupo —</option>
+        </select>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-create-task')">Cancelar</button>
+            <button class="btn-primary" onclick="crearTarea()">Crear misión</button>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -379,9 +465,7 @@ const API_URL = "https://fifa-chat-dr6w.onrender.com";
 const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
 const userName = sessionStorage.getItem("userName") || localStorage.getItem("userName");
 
-if (!userId || !userName) {
-    location.href = "login.html";
-}
+if (!userId || !userName) location.href = "login.html";
 
 document.getElementById("userHeaderName").textContent = userName;
 
@@ -392,6 +476,18 @@ let currentGroup = null;
 let myFriends = [];
 let chatType = "private";
 
+const TASK_TYPE_LABELS = {
+    messages: { icon: "💬", label: "Mensajes" },
+    media:    { icon: "📸", label: "Multimedia" },
+    call:     { icon: "📹", label: "Llamadas" }
+};
+
+const TARGET_LABELS = {
+    messages: "Meta (número de mensajes)",
+    media:    "Meta (número de fotos/videos)",
+    call:     "Meta (número de llamadas)"
+};
+
 /* SIDEBAR */
 function toggleSidebar(e) {
     if (e) e.preventDefault();
@@ -401,13 +497,8 @@ function toggleSidebar(e) {
 }
 
 /* MODALS */
-function openModal(id) {
-    document.getElementById(id).classList.add("active");
-}
-
-function closeModal(id) {
-    document.getElementById(id).classList.remove("active");
-}
+function openModal(id) { document.getElementById(id).classList.add("active"); }
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
 
 /* EMOJI */
 document.querySelectorAll(".emoji-picker").forEach(p => {
@@ -423,16 +514,24 @@ function selectedEmoji(id) {
     return document.querySelector(`#${id} .selected`)?.dataset.emoji || "👥";
 }
 
+/* TASK TYPE SELECTOR */
+function selectTaskType(el) {
+    document.querySelectorAll(".task-type-option").forEach(x => x.classList.remove("selected"));
+    el.classList.add("selected");
+    const type = el.dataset.type;
+    document.getElementById("target-label").textContent = TARGET_LABELS[type] || "Meta";
+}
+
+function selectedTaskType() {
+    return document.querySelector(".task-type-option.selected")?.dataset.type || "messages";
+}
+
 /* CHAT */
 function joinChat(id, type, group = null) {
-    if (chatId) {
-        socket.emit("leave_chat", chatId);
-    }
-
+    if (chatId) socket.emit("leave_chat", chatId);
     chatId = id;
     chatType = type;
     currentGroup = group;
-
     socket.emit("join_chat", chatId);
 
     if (type === "group") {
@@ -441,7 +540,6 @@ function joinChat(id, type, group = null) {
         document.getElementById("tasks-toggle-btn").style.display = "none";
         closeTaskPanel();
     }
-
     loadMessages();
 }
 
@@ -449,26 +547,20 @@ function joinChat(id, type, group = null) {
 async function loadFriends() {
     const res = await fetch(`${API_URL}/friends/${userId}`);
     myFriends = await res.json();
-
     const c = document.getElementById("friends-sidebar");
     c.innerHTML = "";
-
     myFriends.forEach(f => {
         const div = document.createElement("div");
         div.className = "friend-item";
         div.textContent = "👤 " + f.full_name;
-
         div.onclick = () => {
             document.getElementById("current-group-name").textContent = f.full_name;
             document.getElementById("header-avatar").textContent = "👤";
             document.getElementById("header-status-text").textContent = "● Privado";
-
             const a = Math.min(+userId, +f.id);
             const b = Math.max(+userId, +f.id);
-
             joinChat(`${a}_${b}`, "private");
         };
-
         c.appendChild(div);
     });
 }
@@ -477,46 +569,36 @@ async function loadFriends() {
 async function loadGroups() {
     const res = await fetch(`${API_URL}/groups/${userId}`);
     const groups = await res.json();
-
     const c = document.getElementById("groups-sidebar");
     c.innerHTML = "";
-
     groups.forEach(g => {
         const div = document.createElement("div");
         div.className = "friend-item";
-
         div.innerHTML = `
-        <div class="group-item-row">
-            <span>${g.image_url} ${g.name}</span>
-            ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
-        </div>`;
-
+            <div class="group-item-row">
+                <span>${g.image_url} ${g.name}</span>
+                ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
+            </div>`;
         div.onclick = (e) => {
             if (e.target.classList.contains("group-edit-btn")) {
                 openEditGroupModal(e, g.id, g.name, g.image_url);
                 return;
             }
-
             document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
             document.getElementById("header-avatar").textContent = g.image_url;
             document.getElementById("header-status-text").textContent = "● Grupo";
-
             joinChat(`group_${g.id}`, "group", g);
             loadGroupTasks(g.id);
         };
-
         c.appendChild(div);
     });
 }
 
-/* TASKS */
+/* TASKS PANEL */
 function toggleTaskPanel() {
     const p = document.getElementById("task-panel");
     p.classList.toggle("open");
-
-    if (p.classList.contains("open") && currentGroup) {
-        loadGroupTasks(currentGroup.id);
-    }
+    if (p.classList.contains("open") && currentGroup) loadGroupTasks(currentGroup.id);
 }
 
 function closeTaskPanel() {
@@ -525,28 +607,41 @@ function closeTaskPanel() {
 
 async function loadGroupTasks(groupId) {
     const list = document.getElementById("task-panel-list");
-    list.innerHTML = "Cargando...";
+    list.innerHTML = "<div style='color:#aaa;font-size:12px;padding:8px'>Cargando...</div>";
 
     const res = await fetch(`${API_URL}/tasks/${groupId}`);
     const tasks = await res.json();
-
     list.innerHTML = "";
+
+    if (!tasks.length) {
+        list.innerHTML = "<div style='color:#aaa;font-size:12px;padding:8px'>Sin misiones aún</div>";
+        return;
+    }
 
     tasks.forEach(t => {
         const current = t.current_value || 0;
-        const target = t.target_value || 0;
-        const percent = target > 0 ? Math.min((current / target) * 100, 100) : 0;
+        const target = t.target_value || 1;
+        const percent = Math.min((current / target) * 100, 100);
+        const typeInfo = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
 
         const div = document.createElement("div");
         div.className = `task-mini-card ${t.completed ? "done" : ""}`;
 
         div.innerHTML = `
-        <h4>${t.title}</h4>
-        <div>${current}/${target}</div>
-        <div class="progress-wrap">
-            <div class="progress-bar" style="width:${percent}%"></div>
-        </div>`;
-
+            <div class="task-mini-card-header">
+                <h4>${typeInfo.icon} ${t.title}</h4>
+                <span class="task-type-badge">${typeInfo.label}</span>
+            </div>
+            ${t.assigned_name ? `<div class="task-assigned">👤 Asignado a: ${t.assigned_name}</div>` : ""}
+            <div class="task-progress-label">
+                <span>${t.description || ""}</span>
+                <span>${current}/${target}</span>
+            </div>
+            <div class="progress-wrap">
+                <div class="progress-bar ${t.completed ? "done" : ""}" style="width:${percent}%"></div>
+            </div>
+            <div class="task-points">🏅 ${t.points} pts${t.completed ? " · ✅ Completada" : ""}</div>
+        `;
         list.appendChild(div);
     });
 }
@@ -554,12 +649,10 @@ async function loadGroupTasks(groupId) {
 /* SOCKET EVENTS */
 socket.on("new_message", (msg) => {
     if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
-
     renderMessage(msg);
-
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
+        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
     }
 });
 
@@ -572,10 +665,8 @@ socket.on("task_progress", () => {
 /* MESSAGES */
 async function loadMessages() {
     if (!chatId) return;
-
     const res = await fetch(`${API_URL}/messages/${chatId}`);
     const msgs = await res.json();
-
     const c = document.getElementById("chat-messages-area");
     c.innerHTML = "";
     msgs.forEach(renderMessage);
@@ -583,16 +674,16 @@ async function loadMessages() {
 
 function renderMessage(msg) {
     const c = document.getElementById("chat-messages-area");
-
     const div = document.createElement("div");
     div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
 
-    div.innerHTML = `
-    <div class="message-bubble">
-        <b>${msg.username}</b><br>
-        ${msg.message}
-    </div>`;
+    const typeIcon = msg.message_type === "media" ? "📸 " : msg.message_type === "call" ? "📹 " : "";
 
+    div.innerHTML = `
+        <div class="message-bubble">
+            <b>${msg.username}</b><br>
+            ${typeIcon}${msg.message}
+        </div>`;
     c.appendChild(div);
     c.scrollTop = c.scrollHeight;
 }
@@ -606,14 +697,15 @@ async function enviarMensaje() {
     socket.emit("send_message", {
         chat_id: chatId,
         username: userName,
-        message
+        message,
+        message_type: "text"
     });
 
     input.value = "";
 
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
+        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
     }
 }
 
@@ -626,14 +718,12 @@ function openCreateGroupModal() {
     document.getElementById("friend-check-list").innerHTML = myFriends.map(f =>
         `<label class="friend-check-item"><input type="checkbox" value="${f.id}"> ${f.full_name}</label>`
     ).join("");
-
     openModal("modal-create-group");
 }
 
 async function crearGrupo() {
     const name = document.getElementById("new-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-create");
-
     const checked = [...document.querySelectorAll("#friend-check-list input:checked")];
     const member_ids = checked.map(x => +x.value);
 
@@ -647,7 +737,7 @@ async function crearGrupo() {
     loadGroups();
 }
 
-/* EDIT GROUP */
+/* GROUP EDIT */
 function openEditGroupModal(e, id, name) {
     e.stopPropagation();
     document.getElementById("edit-group-id").value = id;
@@ -659,28 +749,58 @@ async function guardarEdicionGrupo() {
     const id = document.getElementById("edit-group-id").value;
     const name = document.getElementById("edit-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-edit");
-
     await fetch(`${API_URL}/groups/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, image_url, user_id: userId })
     });
-
     closeModal("modal-edit-group");
     loadGroups();
 }
 
 /* CREATE TASK */
-function openCreateTaskModal() {
+async function openCreateTaskModal() {
+    // Cargar miembros del grupo en el select
+    const select = document.getElementById("new-task-assigned");
+    select.innerHTML = `<option value="">— Cualquiera del grupo —</option>`;
+
+    if (currentGroup) {
+        const res = await fetch(`${API_URL}/groups/${currentGroup.id}/members`);
+        const members = await res.json();
+        members.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            opt.textContent = m.full_name;
+            select.appendChild(opt);
+        });
+    }
+
+    // Reset form
+    document.getElementById("new-task-title").value = "";
+    document.getElementById("new-task-desc").value = "";
+    document.getElementById("new-task-target").value = "10";
+    document.getElementById("new-task-points-slider").value = "100";
+    document.getElementById("new-task-points-badge").textContent = "100";
+    document.querySelectorAll(".task-type-option").forEach((el, i) => {
+        el.classList.toggle("selected", i === 0);
+    });
+    document.getElementById("target-label").textContent = TARGET_LABELS["messages"];
+
     openModal("modal-create-task");
 }
 
 async function crearTarea() {
     const title = document.getElementById("new-task-title").value.trim();
     const description = document.getElementById("new-task-desc").value.trim();
-    const points = parseInt(document.getElementById("new-task-points").value);
-    const task_type = document.getElementById("new-task-type").value;
+    const points = parseInt(document.getElementById("new-task-points-slider").value);
+    const task_type = selectedTaskType();
     const target_value = parseInt(document.getElementById("new-task-target").value);
+    const assigned_to = document.getElementById("new-task-assigned").value || null;
+
+    if (!title) {
+        alert("Por favor escribe un título para la misión.");
+        return;
+    }
 
     await fetch(`${API_URL}/tasks`, {
         method: "POST",
@@ -692,6 +812,7 @@ async function crearTarea() {
             points,
             task_type,
             target_value,
+            assigned_to,
             created_by: userId
         })
     });
