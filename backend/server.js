@@ -78,41 +78,43 @@ io.on("connection", (socket) => {
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
                 /* contar total de mensajes del grupo */
-                const count = await db.query(
-                    `SELECT COUNT(*)::int AS total FROM messages WHERE chat_id = $1`,
-                    [chat_id]
-                );
-                const totalMessages = count.rows[0].total;
+                const activeTasks = await db.query(
+    `SELECT id, target_value, created_at FROM tasks
+     WHERE group_id = $1 AND task_type = 'messages' AND completed = FALSE`,
+    [groupId]
+);
 
-                /* actualizar progreso de tareas activas */
-                await db.query(
-                    `UPDATE tasks
-                     SET current_value = $1
-                     WHERE group_id = $2
-                       AND task_type = 'messages'
-                       AND completed = FALSE`,
-                    [totalMessages, groupId]
-                );
+for (const task of activeTasks.rows) {
+    const count = await db.query(
+        `SELECT COUNT(*)::int AS total FROM messages
+         WHERE chat_id = $1 AND created_at >= $2`,
+        [chat_id, task.created_at]
+    );
+    const total = count.rows[0].total;
 
-                /* completar tareas que alcanzaron la meta */
-                await db.query(
-                    `UPDATE tasks
-                     SET completed = TRUE, completed_at = NOW()
-                     WHERE group_id = $1
-                       AND task_type = 'messages'
-                       AND completed = FALSE
-                       AND current_value >= target_value`,
-                    [groupId]
-                );
+    await db.query(
+        `UPDATE tasks SET current_value = $1 WHERE id = $2`,
+        [total, task.id]
+    );
+}
 
-                /* avisar al frontend */
-                io.to(`chat_${chat_id}`).emit("task_progress");
-            }
+await db.query(
+    `UPDATE tasks
+     SET completed = TRUE, completed_at = NOW()
+     WHERE group_id = $1
+       AND task_type = 'messages'
+       AND completed = FALSE
+       AND current_value >= target_value`,
+    [groupId]
+);
 
-        } catch (err) {
-            console.error("❌ send_message error:", err);
-        }
-    });
+io.to(`chat_${chat_id}`).emit("task_progress");
+}
+
+} catch (err) {
+    console.error("❌ send_message error:", err);
+}
+});
 
     socket.on("group_created", (data) => {
         if (data.member_ids) {
