@@ -3,6 +3,8 @@ const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
 const { Pool } = require("pg");
+const bcrypt = require("bcrypt");
+const SALT_ROUNDS = 10;
 
 const app = express();
 const server = http.createServer(app);
@@ -99,10 +101,12 @@ app.post("/register", async (req, res) => {
     const { full_name, email, password } = req.body;
 
     try {
+        const hash = await bcrypt.hash(password, SALT_ROUNDS);
+
         await db.query(
             `INSERT INTO users (full_name, email, password)
              VALUES ($1,$2,$3)`,
-            [full_name, email, password]
+            [full_name, email, hash]
         );
 
         res.sendStatus(200);
@@ -122,16 +126,51 @@ app.post("/login", async (req, res) => {
         const result = await db.query(
             `SELECT *
              FROM users
-             WHERE email=$1 AND password=$2
+             WHERE email=$1
              LIMIT 1`,
-            [email, password]
+            [email]
         );
 
         if (!result.rows.length) {
             return res.status(401).json({ error: "Login incorrecto" });
         }
 
-        res.json(result.rows[0]);
+        const user = result.rows[0];
+        const savedPassword = user.password;
+
+        let valid = false;
+
+        // Si ya está en bcrypt
+        if (
+            savedPassword.startsWith("$2a$") ||
+            savedPassword.startsWith("$2b$") ||
+            savedPassword.startsWith("$2y$")
+        ) {
+            valid = await bcrypt.compare(password, savedPassword);
+        } else {
+            // Usuario viejo en texto plano
+            valid = password === savedPassword;
+
+            // Migración automática
+            if (valid) {
+                const newHash = await bcrypt.hash(password, SALT_ROUNDS);
+
+                await db.query(
+                    `UPDATE users
+                     SET password=$1
+                     WHERE id=$2`,
+                    [newHash, user.id]
+                );
+            }
+        }
+
+        if (!valid) {
+            return res.status(401).json({ error: "Login incorrecto" });
+        }
+
+        delete user.password;
+
+        res.json(user);
 
     } catch (err) {
         res.status(500).json(err);
