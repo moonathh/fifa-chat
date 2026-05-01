@@ -165,8 +165,25 @@ io.on("connection", (socket) => {
 
                 // Los mensajes de texto también cuentan para tareas tipo "messages"
                 if (message_type === "text") {
-                    await updateTaskProgress(chat_id, groupId, username, "messages");
-                }
+
+    await db.query(`
+        UPDATE tasks
+        SET current_value = current_value + 1
+        WHERE group_id = $1
+        AND task_type = 'messages'
+        AND completed = false
+    `,[groupId]);
+
+    await db.query(`
+        UPDATE tasks
+        SET completed = true,
+            completed_at = NOW()
+        WHERE group_id = $1
+        AND task_type = 'messages'
+        AND completed = false
+        AND current_value >= target_value
+    `,[groupId]);
+}
 
                 io.to(`chat_${chat_id}`).emit("task_progress");
             }
