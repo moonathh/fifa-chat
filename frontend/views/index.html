@@ -285,6 +285,42 @@
     margin-top:4px;
     text-align:right;
 }
+
+.chat-messages{
+    flex:1;
+    overflow-y:auto;
+    padding:15px;
+    background:#f7f7f7;
+}
+
+.message-wrapper{
+    display:flex;
+    margin-bottom:10px;
+}
+
+.message-wrapper.sent{
+    justify-content:flex-end;
+}
+
+.message-wrapper.received{
+    justify-content:flex-start;
+}
+
+.message-bubble{
+    max-width:70%;
+    background:#00bcd4;
+    color:#fff;
+    padding:10px 14px;
+    border-radius:14px;
+    font-size:14px;
+    line-height:1.4;
+}
+
+.message-wrapper.received .message-bubble{
+    background:#fff;
+    color:#222;
+    border:1px solid #ddd;
+}
 </style>
 </head>
 
@@ -460,6 +496,9 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
+    window.onerror = function(msg, url, line){
+    console.log("ERROR:", msg, "Línea:", line);
+};
 const API_URL = "https://fifa-chat-dr6w.onrender.com";
 
 const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
@@ -607,43 +646,44 @@ function closeTaskPanel() {
 
 async function loadGroupTasks(groupId) {
     const list = document.getElementById("task-panel-list");
-    list.innerHTML = "<div style='color:#aaa;font-size:12px;padding:8px'>Cargando...</div>";
 
-    const res = await fetch(`${API_URL}/tasks/${groupId}`);
-    const tasks = await res.json();
-    list.innerHTML = "";
+    try{
+        list.innerHTML = "Cargando...";
 
-    if (!tasks.length) {
-        list.innerHTML = "<div style='color:#aaa;font-size:12px;padding:8px'>Sin misiones aún</div>";
-        return;
+        const res = await fetch(`${API_URL}/tasks/${groupId}`);
+        const tasks = await res.json();
+
+        list.innerHTML = "";
+
+        if(!tasks.length){
+            list.innerHTML = "Sin tareas";
+            return;
+        }
+
+        tasks.forEach(t => {
+
+            const current = Number(t.current_value)||0;
+            const target = Number(t.target_value)||1;
+            const percent = Math.min((current/target)*100,100);
+
+            const div = document.createElement("div");
+            div.className = "task-mini-card";
+
+            div.innerHTML = `
+                <h4>${t.title}</h4>
+                <p>${current}/${target}</p>
+                <div class="progress-wrap">
+                    <div class="progress-bar" style="width:${percent}%"></div>
+                </div>
+            `;
+
+            list.appendChild(div);
+        });
+
+    }catch(err){
+        list.innerHTML = "Error cargando tareas";
+        console.error(err);
     }
-
-    tasks.forEach(t => {
-        const current = t.current_value || 0;
-        const target = t.target_value || 1;
-        const percent = Math.min((current / target) * 100, 100);
-        const typeInfo = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
-
-        const div = document.createElement("div");
-        div.className = `task-mini-card ${t.completed ? "done" : ""}`;
-
-        div.innerHTML = `
-            <div class="task-mini-card-header">
-                <h4>${typeInfo.icon} ${t.title}</h4>
-                <span class="task-type-badge">${typeInfo.label}</span>
-            </div>
-            ${t.assigned_name ? `<div class="task-assigned">👤 Asignado a: ${t.assigned_name}</div>` : ""}
-            <div class="task-progress-label">
-                <span>${t.description || ""}</span>
-                <span>${current}/${target}</span>
-            </div>
-            <div class="progress-wrap">
-                <div class="progress-bar ${t.completed ? "done" : ""}" style="width:${percent}%"></div>
-            </div>
-            <div class="task-points">🏅 ${t.points} pts${t.completed ? " · ✅ Completada" : ""}</div>
-        `;
-        list.appendChild(div);
-    });
 }
 
 /* SOCKET EVENTS */
@@ -656,9 +696,9 @@ socket.on("new_message", (msg) => {
     }
 });
 
-socket.on("task_progress", () => {
-    if (chatType === "group" && currentGroup) {
-        loadGroupTasks(currentGroup.id);
+socket.on("task_progress", async () => {
+    if(chatType==="group" && currentGroup){
+        await loadGroupTasks(currentGroup.id);
     }
 });
 
