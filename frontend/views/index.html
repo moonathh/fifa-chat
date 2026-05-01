@@ -376,27 +376,35 @@
 ══════════════════════════════════════════ -->
 <div class="modal-overlay" id="modal-create-task">
     <div class="modal-box">
-        <h3>📋 Nueva tarea de grupo</h3>
+        <h3>📋 Nueva tarea automática</h3>
 
-        <label>Título de la tarea</label>
-        <input type="text" id="new-task-title" placeholder="Ej: Reservar hotel en MTY" maxlength="80">
+        <label>Título</label>
+        <input type="text" id="new-task-title" placeholder="Ej: Escribir 50 mensajes">
 
-        <label>Descripción (opcional)</label>
-        <input type="text" id="new-task-desc" placeholder="Detalles adicionales...">
+        <label>Descripción</label>
+        <input type="text" id="new-task-desc" placeholder="Opcional">
 
-        <label>Puntos al completar</label>
-        <input type="number" id="new-task-points" value="100" min="10" max="1000">
-
-        <label>Asignar a (opcional)</label>
-        <select id="new-task-assigned">
-            <option value="">— Sin asignar —</option>
+        <label>Tipo de tarea</label>
+        <select id="new-task-type">
+            <option value="messages">Mensajes enviados al grupo</option>
         </select>
 
-        <small id="create-task-error" style="color:#e53935;display:block;margin-bottom:8px;"></small>
+        <label>Meta requerida</label>
+        <input type="number" id="new-task-target" value="50" min="1">
+
+        <label>Puntos</label>
+        <input type="number" id="new-task-points" value="100" min="1">
+
+        <small id="create-task-error" style="color:red;"></small>
 
         <div class="modal-actions">
-            <button class="btn-cancel" onclick="closeModal('modal-create-task')">Cancelar</button>
-            <button class="btn-primary" onclick="crearTarea()">Crear tarea</button>
+            <button class="btn-cancel" onclick="closeModal('modal-create-task')">
+                Cancelar
+            </button>
+
+            <button class="btn-primary" onclick="crearTarea()">
+                Crear tarea
+            </button>
         </div>
     </div>
 </div>
@@ -697,37 +705,72 @@ function closeTaskPanel() {
 }
 
 async function loadGroupTasks(groupId) {
+
     const list = document.getElementById("task-panel-list");
-    list.innerHTML = "<p style='color:#aaa;font-size:13px;'>Cargando...</p>";
+    list.innerHTML = "Cargando...";
 
     try {
+
         const res = await fetch(`${API_URL}/tasks/${groupId}`);
         const tasks = await res.json();
 
         if (!tasks.length) {
-            list.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;padding:10px 0;">No hay tareas aún. ¡Crea la primera!</p>`;
+            list.innerHTML = "No hay tareas.";
             return;
         }
 
         list.innerHTML = "";
+
         tasks.forEach(t => {
+
+            const actual = t.current_value || 0;
+            const meta = t.target_value || 0;
+
+            let percent = 0;
+            if(meta > 0){
+                percent = Math.min((actual/meta)*100,100);
+            }
+
             const div = document.createElement("div");
-            div.className = `task-mini-card${t.completed ? " done" : ""}`;
+            div.className = `task-mini-card ${t.completed ? "done":""}`;
+
             div.innerHTML = `
-                <div>
+                <div style="width:100%">
                     <h4>${t.title}</h4>
-                    <p>${t.description || ""} &nbsp;·&nbsp; <b style="color:var(--fifa-cyan)">+${t.points} pts</b>
-                    ${t.assigned_name ? `&nbsp;·&nbsp; 👤 ${t.assigned_name}` : ""}</p>
+
+                    <p>${t.description || ""}</p>
+
+                    <div style="
+                        height:8px;
+                        background:#eee;
+                        border-radius:10px;
+                        overflow:hidden;
+                        margin-top:8px;">
+                        <div style="
+                            width:${percent}%;
+                            height:100%;
+                            background:#00bcd4;">
+                        </div>
+                    </div>
+
+                    <p style="margin-top:6px;font-size:12px;">
+                        ${actual} / ${meta}
+                    </p>
                 </div>
-                ${!t.completed
-                    ? `<button class="task-complete-btn" onclick="completarTarea(${t.id})">✔ Completar</button>`
-                    : `<span style="color:#2ecc71;font-weight:700;font-size:12px;">✔ Hecha</span>`}
+
+                ${
+                    t.completed
+                    ? `<span style="color:#2ecc71;font-weight:bold;">✔</span>`
+                    : ``
+                }
             `;
+
             list.appendChild(div);
+
         });
 
-    } catch (err) {
-        list.innerHTML = `<p style="color:#e53935;font-size:13px;">Error cargando tareas.</p>`;
+    } catch(err) {
+        list.innerHTML = "Error cargando tareas.";
     }
 }
 
@@ -761,42 +804,60 @@ async function openCreateTaskModal() {
 }
 
 async function crearTarea() {
-    const title       = document.getElementById("new-task-title").value.trim();
-    const description = document.getElementById("new-task-desc").value.trim();
-    const points      = parseInt(document.getElementById("new-task-points").value) || 100;
-    const assigned_to = document.getElementById("new-task-assigned").value || null;
-    const errorEl     = document.getElementById("create-task-error");
 
-    if (!title) { errorEl.textContent = "Escribe un título para la tarea."; return; }
+    const title = document.getElementById("new-task-title").value.trim();
+    const description = document.getElementById("new-task-desc").value.trim();
+    const points = parseInt(document.getElementById("new-task-points").value) || 100;
+    const task_type = document.getElementById("new-task-type").value;
+    const target_value = parseInt(document.getElementById("new-task-target").value) || 50;
+
+    const errorEl = document.getElementById("create-task-error");
+
+    if (!title) {
+        errorEl.textContent = "Escribe un título.";
+        return;
+    }
 
     try {
+
         const res = await fetch(`${API_URL}/tasks`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type":"application/json"
+            },
             body: JSON.stringify({
                 group_id: currentGroup.id,
-                title, description, points,
-                assigned_to, created_by: userId
+                title,
+                description,
+                points,
+                task_type,
+                target_value,
+                created_by: userId
             })
         });
 
-        const task = await res.json();
-        if (!res.ok) { errorEl.textContent = task.error || "Error al crear tarea."; return; }
+        const data = await res.json();
+
+        if (!res.ok) {
+            errorEl.textContent = data.error || "Error";
+            return;
+        }
 
         closeModal("modal-create-task");
 
-        // Notificar al grupo en tiempo real
-        socket.emit("task_created", { group_id: `group_${currentGroup.id}`, task });
+        socket.emit("task_created", {
+            group_id:`group_${currentGroup.id}`,
+            task:data
+        });
 
-        // Refrescar panel
         loadGroupTasks(currentGroup.id);
 
-    } catch (err) {
-        errorEl.textContent = "Error de conexión.";
+    } catch(err) {
+        errorEl.textContent = "Error conexión.";
     }
 }
 
-async function completarTarea(taskId) {
+
     try {
         const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
             method: "PATCH",
