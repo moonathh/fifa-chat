@@ -12,116 +12,330 @@
             gap: 20px;
             padding: 20px;
         }
+
+        /* ── Filtros ── */
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            padding: 0 20px 4px;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            padding: 6px 16px;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            color: #555;
+            transition: .2s;
+        }
+        .filter-btn.active {
+            border-color: var(--fifa-cyan);
+            background: var(--fifa-cyan);
+            color: #fff;
+        }
+
+        /* ── Tarjeta ── */
         .task-card {
             background: white;
             border-radius: 15px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,.07);
             border-left: 5px solid var(--fifa-cyan);
-            transition: transform 0.2s;
+            transition: transform .2s;
+            position: relative;
         }
-        .task-card:hover { transform: translateY(-5px); }
+        .task-card:hover { transform: translateY(-4px); }
+        .task-card.done  { border-left-color: #2ecc71; opacity: .7; }
+
         .task-tag {
             background: #f1f5f9;
             color: var(--fifa-navy);
-            padding: 4px 10px;
+            padding: 3px 10px;
             border-radius: 20px;
             font-size: 11px;
-            font-weight: bold;
+            font-weight: 700;
             text-transform: uppercase;
+            letter-spacing: .4px;
         }
+
+        .task-points {
+            color: var(--fifa-cyan);
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: #888;
+            margin: 6px 0 16px;
+        }
+
+        .task-status-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+        .badge-pending  { background: #fff3e0; color: #e65100; }
+        .badge-done     { background: #e8f5e9; color: #2e7d32; }
+
+        .btn-complete {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: var(--fifa-navy);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            transition: .2s;
+            margin-top: 10px;
+        }
+        .btn-complete:hover { background: var(--fifa-cyan); }
+
         .empty-state {
             text-align: center;
-            padding: 50px;
+            padding: 60px 20px;
             color: #94a3b8;
+            grid-column: 1/-1;
         }
+
+        /* ── Stats bar ── */
+        .stats-bar {
+            display: flex;
+            gap: 16px;
+            padding: 16px 20px;
+            flex-wrap: wrap;
+        }
+        .stat-chip {
+            background: white;
+            border-radius: 10px;
+            padding: 10px 18px;
+            box-shadow: 0 2px 6px rgba(0,0,0,.06);
+            text-align: center;
+            min-width: 90px;
+        }
+        .stat-chip .stat-value { font-size: 22px; font-weight: 800; color: var(--fifa-navy); }
+        .stat-chip .stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .4px; }
+
+        .content-header {
+            padding: 20px 20px 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .content-area { flex: 1; overflow-y: auto; }
     </style>
 </head>
 <body>
-    <div class="app-layout">
-        <nav class="navbar-top">
-            <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
-            <div class="user-profile">
-                <span id="user-name">Miki</span>
-                <div class="avatar">👤</div>
-            </div>
-        </nav>
+<div class="app-layout">
 
-        <div class="main-container">
-            <aside class="sidebar-nav">
-                <div class="nav-section">
-                    <p class="nav-section-title">Comunicación</p>
-                    <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
-                    <a href="social.html" class="nav-item"><span>👥</span> Social</a>
-                </div>
-                <div class="nav-section">
-                    <p class="nav-section-title">Comunidad Local</p>
-                    <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
-                </div>
-                <div class="nav-section">
-                    <p class="nav-section-title">Logística</p>
-                    <a href="task.html" class="nav-item active"><span>📋</span> Tareas de Grupo</a>
-                    <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
-                </div>
-            </aside>
-
-            <main class="content-area">
-                <header class="content-header" style="padding: 20px;">
-                    <h2 style="color: var(--fifa-navy); margin: 0;">Misiones de Grupo Activas</h2>
-                    <p style="color: #64748b; font-size: 14px;">Completa los retos asignados en tus chats para ganar puntos.</p>
-                </header>
-
-                <div id="tasks-container" class="task-grid">
-                    </div>
-            </main>
+    <nav class="navbar-top">
+        <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+        <div class="user-profile">
+            <span id="user-name">Cargando...</span>
+            <a href="profile.html" class="profile-trigger"><div class="avatar">👤</div></a>
         </div>
-    </div>
+    </nav>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            cargarTareas();
-            const savedName = sessionStorage.getItem('userName') || "Miki";
-            document.getElementById('user-name').textContent = savedName;
+    <div class="main-container">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar-nav">
+            <div class="nav-section">
+                <p class="nav-section-title">Comunicación</p>
+                <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+                <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+            </div>
+            <div class="nav-section">
+                <p class="nav-section-title">Comunidad Local</p>
+                <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
+            </div>
+            <div class="nav-section">
+                <p class="nav-section-title">Logística</p>
+                <a href="task.html" class="nav-item active"><span>📋</span> Tareas de Grupo</a>
+                <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+            </div>
+        </aside>
+
+        <!-- CONTENT -->
+        <main class="content-area">
+
+            <div class="content-header">
+                <h2 style="color:var(--fifa-navy);margin:0;">📋 Misiones de Grupo</h2>
+                <p style="color:#64748b;font-size:14px;margin:4px 0 0;">Completa tareas asignadas en tus grupos para ganar puntos.</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-bar">
+                <div class="stat-chip">
+                    <div class="stat-value" id="stat-total">—</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-value" id="stat-pending" style="color:#e65100;">—</div>
+                    <div class="stat-label">Pendientes</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-value" id="stat-done" style="color:#2e7d32;">—</div>
+                    <div class="stat-label">Completadas</div>
+                </div>
+                <div class="stat-chip">
+                    <div class="stat-value" id="stat-pts" style="color:var(--fifa-cyan);">—</div>
+                    <div class="stat-label">Pts ganados</div>
+                </div>
+            </div>
+
+            <!-- Filtros -->
+            <div class="filter-bar">
+                <button class="filter-btn active" data-filter="all"      onclick="setFilter(this, 'all')">Todas</button>
+                <button class="filter-btn"         data-filter="pending"  onclick="setFilter(this, 'pending')">⏳ Pendientes</button>
+                <button class="filter-btn"         data-filter="done"     onclick="setFilter(this, 'done')">✅ Completadas</button>
+                <button class="filter-btn"         data-filter="mine"     onclick="setFilter(this, 'mine')">👤 Asignadas a mí</button>
+            </div>
+
+            <div id="tasks-container" class="task-grid">
+                <div class="empty-state">
+                    <span style="font-size:36px">⏳</span>
+                    <p>Cargando tareas...</p>
+                </div>
+            </div>
+
+        </main>
+    </div>
+</div>
+
+<script>
+const API_URL = "https://fifa-chat-dr6w.onrender.com";
+const userId  = sessionStorage.getItem("user_id");
+const userName= sessionStorage.getItem("userName") || "Usuario";
+
+if (!userId) window.location.href = "login.html";
+document.getElementById("user-name").textContent = userName;
+
+let allTasks   = [];
+let activeFilter = "all";
+
+/* ══════════════════════════════════════════
+   CARGAR TAREAS (todas las de los grupos del usuario)
+══════════════════════════════════════════ */
+async function cargarTareas() {
+    try {
+        const res = await fetch(`${API_URL}/tasks/user/${userId}`);
+        if (!res.ok) throw new Error("Error API");
+        allTasks = await res.json();
+
+        actualizarStats();
+        renderTareas(allTasks);
+
+    } catch (err) {
+        console.error(err);
+        document.getElementById("tasks-container").innerHTML = `
+            <div class="empty-state">
+                <span style="font-size:36px">⚠️</span>
+                <p>Error cargando tareas. Verifica tu conexión.</p>
+            </div>`;
+    }
+}
+
+/* ══════════════════════════════════════════
+   ESTADÍSTICAS
+══════════════════════════════════════════ */
+function actualizarStats() {
+    const pending = allTasks.filter(t => !t.completed);
+    const done    = allTasks.filter(t =>  t.completed);
+    const ptsGanados = done.reduce((acc, t) => acc + (t.points || 0), 0);
+
+    document.getElementById("stat-total").textContent   = allTasks.length;
+    document.getElementById("stat-pending").textContent = pending.length;
+    document.getElementById("stat-done").textContent    = done.length;
+    document.getElementById("stat-pts").textContent     = ptsGanados;
+}
+
+/* ══════════════════════════════════════════
+   FILTRO
+══════════════════════════════════════════ */
+function setFilter(btn, filter) {
+    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    activeFilter = filter;
+
+    let filtered = allTasks;
+    if (filter === "pending") filtered = allTasks.filter(t => !t.completed);
+    if (filter === "done")    filtered = allTasks.filter(t =>  t.completed);
+    if (filter === "mine")    filtered = allTasks.filter(t => String(t.assigned_to) === String(userId));
+
+    renderTareas(filtered);
+}
+
+/* ══════════════════════════════════════════
+   RENDER
+══════════════════════════════════════════ */
+function renderTareas(tasks) {
+    const container = document.getElementById("tasks-container");
+
+    if (!tasks.length) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <span style="font-size:40px">📋</span>
+                <p>No hay tareas en esta categoría.<br>
+                   Ve a un chat grupal y crea una misión.</p>
+                <a href="index.html" style="color:var(--fifa-cyan);font-weight:bold;">Ir a Chats →</a>
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = tasks.map(t => `
+        <div class="task-card ${t.completed ? 'done' : ''}">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
+                <span class="task-tag">${t.group_name || "Grupo"}</span>
+                <span class="task-points">+${t.points} pts</span>
+            </div>
+            <h3 style="margin:0 0 4px;color:var(--fifa-navy);">${t.title}</h3>
+            <p class="task-meta">
+                ${t.description ? t.description + " &nbsp;·&nbsp; " : ""}
+                ${t.assigned_name ? "👤 " + t.assigned_name + " &nbsp;·&nbsp; " : ""}
+                <span class="task-status-badge ${t.completed ? 'badge-done' : 'badge-pending'}">
+                    ${t.completed ? "✅ Completada" : "⏳ Pendiente"}
+                </span>
+            </p>
+            ${!t.completed
+                ? `<button class="btn-complete" onclick="completarTarea(${t.id}, ${t.points})">Marcar como completada</button>`
+                : ""}
+        </div>
+    `).join("");
+}
+
+/* ══════════════════════════════════════════
+   COMPLETAR TAREA
+══════════════════════════════════════════ */
+async function completarTarea(taskId, points) {
+    try {
+        const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId })
         });
 
-        function cargarTareas() {
-            const container = document.getElementById('tasks-container');
-            const tareas = JSON.parse(localStorage.getItem('tareasGrupales') || '[]');
+        if (!res.ok) { alert("Error al completar la tarea."); return; }
 
-            if (tareas.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <span style="font-size: 40px;">📋</span>
-                        <p>No hay tareas asignadas todavía.<br>Ve a un chat grupal y asigna una misión.</p>
-                        <a href="index.html" style="color: var(--fifa-cyan); font-weight: bold; text-decoration: none;">Ir a Chats</a>
-                    </div>`;
-                return;
-            }
-            container.innerHTML = [...tareas].reverse().map((tarea, index) => {
-                const originalIndex = tareas.length - 1 - index;
-                return `
-                <div class="task-card">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
-                        <span class="task-tag">${tarea.grupo}</span>
-                        <b style="color: var(--fifa-cyan);">+${tarea.recompensa} pts</b>
-                    </div>
-                    <h3 style="margin: 0 0 10px 0; color: var(--fifa-navy); font-size: 18px;">${tarea.titulo}</h3>
-                    <p style="font-size: 13px; color: #64748b; margin-bottom: 20px;">Estado: ⏳ Pendiente</p>
-                    <button onclick="completarTarea(${originalIndex})" style="width: 100%; padding: 10px; border: none; background: var(--fifa-navy); color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                        Marcar como completada
-                    </button>
-                </div>`;
-            }).join('');
+        alert(`🎉 ¡Misión completada! +${points} puntos añadidos a tu cuenta.`);
+        await cargarTareas();     // recargar desde BD
+        if (activeFilter !== "all") {
+            document.querySelector(`.filter-btn[data-filter="${activeFilter}"]`).click();
         }
 
-        function completarTarea(index) {
-            let tareas = JSON.parse(localStorage.getItem('tareasGrupales') || '[]');
-            tareas.splice(index, 1);
-            localStorage.setItem('tareasGrupales', JSON.stringify(tareas));
-            
-            alert("¡Misión completada! Puntos enviados a tu cuenta.");
-            cargarTareas();
-        }
-    </script>
+    } catch (err) {
+        alert("Error de conexión.");
+    }
+}
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.addEventListener("DOMContentLoaded", cargarTareas);
+</script>
 </body>
 </html>

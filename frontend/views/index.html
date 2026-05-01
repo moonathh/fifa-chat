@@ -5,6 +5,206 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chats | FIFA 2026 Support</title>
 <link rel="stylesheet" href="../css/styles.css">
+<style>
+/* ── Modal base ── */
+.modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.modal-overlay.active { display: flex; }
+
+.modal-box {
+    background: #fff;
+    border-radius: 18px;
+    padding: 30px;
+    width: 90%;
+    max-width: 460px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    animation: popIn .25s cubic-bezier(.4,0,.2,1);
+}
+@keyframes popIn {
+    from { transform: scale(.92); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.modal-box h3 {
+    margin: 0 0 20px;
+    color: var(--fifa-navy);
+    font-size: 18px;
+}
+
+.modal-box input,
+.modal-box select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+    margin-bottom: 12px;
+}
+
+.modal-box label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: #555;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+.modal-actions button { flex: 1; padding: 11px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; }
+.btn-cancel { background: #f0f4f8; color: #555; }
+.btn-cancel:hover { background: #e1e8f0; }
+
+/* ── Emoji picker ── */
+.emoji-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.emoji-option {
+    font-size: 26px;
+    cursor: pointer;
+    border-radius: 8px;
+    padding: 4px 8px;
+    transition: .2s;
+    border: 2px solid transparent;
+}
+.emoji-option:hover { background: #f0f4f8; }
+.emoji-option.selected { border-color: var(--fifa-cyan); background: #e0f7fa; }
+
+/* ── Friend checkboxes ── */
+.friend-check-list {
+    max-height: 180px;
+    overflow-y: auto;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 6px;
+    margin-bottom: 12px;
+}
+.friend-check-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: .15s;
+}
+.friend-check-item:hover { background: #f0f4f8; }
+.friend-check-item input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--fifa-cyan); }
+
+/* ── Group sidebar item with edit button ── */
+.group-item-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px;
+}
+.group-edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #aaa;
+    padding: 4px;
+    border-radius: 4px;
+    transition: .2s;
+    opacity: 0;
+}
+.friend-item:hover .group-edit-btn { opacity: 1; }
+.group-edit-btn:hover { color: var(--fifa-cyan); background: #f0f4f8; }
+
+/* ── Create group button in sidebar ── */
+.create-group-btn {
+    margin: 4px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 2px dashed var(--fifa-cyan);
+    background: transparent;
+    color: var(--fifa-cyan);
+    font-weight: 700;
+    font-size: 13px;
+    transition: .2s;
+    width: calc(100% - 16px);
+    box-sizing: border-box;
+}
+.create-group-btn:hover { background: #e0f7fa; }
+
+/* ── Task panel inside chat ── */
+.task-panel-toggle {
+    background: none;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--fifa-navy);
+    font-weight: 600;
+    transition: .2s;
+}
+.task-panel-toggle:hover { background: #f0f4f8; }
+
+.task-panel {
+    border-top: 1px solid #eee;
+    padding: 14px 20px;
+    background: #fafafa;
+    display: none;
+}
+.task-panel.open { display: block; }
+
+.task-mini-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-left: 4px solid var(--fifa-cyan);
+    box-shadow: 0 2px 6px rgba(0,0,0,.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.task-mini-card.done { border-left-color: #2ecc71; opacity: .65; }
+.task-mini-card h4 { margin: 0 0 2px; font-size: 14px; color: var(--fifa-navy); }
+.task-mini-card p  { margin: 0; font-size: 12px; color: #888; }
+.task-complete-btn {
+    background: var(--fifa-navy);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 700;
+    transition: .2s;
+    white-space: nowrap;
+}
+.task-complete-btn:hover { background: var(--fifa-cyan); }
+
+.task-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.task-panel-header h4 { margin: 0; color: var(--fifa-navy); }
+</style>
 </head>
 
 <body>
@@ -13,7 +213,6 @@
 <!-- NAV -->
 <nav class="navbar-top">
     <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
-
     <div class="user-profile">
         <span id="userHeaderName">Invitado</span>
         <a href="profile.html" class="profile-trigger">
@@ -24,19 +223,17 @@
 
 <div class="main-container">
 
-<!-- SIDEBAR -->
+<!-- SIDEBAR NAV -->
 <aside class="sidebar-nav">
     <div class="nav-section">
         <p class="nav-section-title">Comunicación</p>
         <a href="#" class="nav-item active" onclick="toggleSidebar(event)">💬 Chats</a>
         <a href="social.html" class="nav-item">👥 Social</a>
     </div>
-
     <div class="nav-section">
         <p class="nav-section-title">Comunidad Local</p>
         <a href="help-mty.html" class="nav-item">🤠 Ayuda MTY</a>
     </div>
-
     <div class="nav-section">
         <p class="nav-section-title">Logística</p>
         <a href="task.html" class="nav-item">📋 Tareas de Grupo</a>
@@ -54,221 +251,627 @@
     <div class="chat-section-title">Amigos</div>
     <div id="friends-sidebar"></div>
 
-    <div class="chat-section-title">Grupos</div>
+    <div class="chat-section-title" style="display:flex;justify-content:space-between;align-items:center;padding-right:8px;">
+        <span>Grupos</span>
+    </div>
     <div id="groups-sidebar"></div>
+
+    <!-- Botón crear grupo -->
+    <button class="create-group-btn" onclick="openCreateGroupModal()">
+        ➕ Crear grupo
+    </button>
 
 </aside>
 
-<!-- CHAT -->
+<!-- CHAT WINDOW -->
 <main class="chat-window">
 
-<header class="chat-header">
-    <div style="display:flex;gap:10px;align-items:center;">
-        <div class="avatar-micro" id="header-avatar">👤</div>
-        <div>
-            <strong id="current-group-name">@Chat</strong>
-            <p id="header-status-text" style="margin:0;font-size:10px;">● En línea</p>
+    <header class="chat-header">
+        <div style="display:flex;gap:10px;align-items:center;">
+            <div class="avatar-micro" id="header-avatar">👤</div>
+            <div>
+                <strong id="current-group-name">@Chat</strong>
+                <p id="header-status-text" style="margin:0;font-size:10px;">● En línea</p>
+            </div>
         </div>
+        <!-- botón tareas (solo visible en grupos) -->
+        <button class="task-panel-toggle" id="tasks-toggle-btn" style="display:none" onclick="toggleTaskPanel()">📋 Tareas del grupo</button>
+    </header>
+
+    <!-- Panel de tareas (colapsable, solo grupos) -->
+    <div class="task-panel" id="task-panel">
+        <div class="task-panel-header">
+            <h4>📋 Misiones del grupo</h4>
+            <button class="btn-primary" style="padding:6px 14px;font-size:13px;" onclick="openCreateTaskModal()">+ Nueva tarea</button>
+        </div>
+        <div id="task-panel-list">Cargando tareas...</div>
     </div>
-</header>
 
-<section class="chat-messages" id="chat-messages-area"></section>
+    <section class="chat-messages" id="chat-messages-area"></section>
 
-<footer class="input-bar">
-    <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
-    <button onclick="enviarMensaje()">Enviar</button>
-</footer>
+    <footer class="input-bar">
+        <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
+        <button onclick="enviarMensaje()">Enviar</button>
+    </footer>
 
 </main>
 </div>
 </div>
 
-<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<!-- ══════════════════════════════════════════
+     MODAL: CREAR GRUPO
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-create-group">
+    <div class="modal-box">
+        <h3>👥 Crear nuevo grupo</h3>
 
+        <label>Nombre del grupo</label>
+        <input type="text" id="new-group-name" placeholder="Ej: Squad FIFA MTY" maxlength="40">
+
+        <label>Icono del grupo</label>
+        <div class="emoji-picker" id="emoji-picker-create">
+            <span class="emoji-option selected" data-emoji="👥">👥</span>
+            <span class="emoji-option" data-emoji="⚽">⚽</span>
+            <span class="emoji-option" data-emoji="🏆">🏆</span>
+            <span class="emoji-option" data-emoji="🌮">🌮</span>
+            <span class="emoji-option" data-emoji="🎉">🎉</span>
+            <span class="emoji-option" data-emoji="🔥">🔥</span>
+            <span class="emoji-option" data-emoji="🎯">🎯</span>
+            <span class="emoji-option" data-emoji="🌍">🌍</span>
+            <span class="emoji-option" data-emoji="🚌">🚌</span>
+            <span class="emoji-option" data-emoji="🏟️">🏟️</span>
+        </div>
+
+        <label>Agregar amigos (mínimo 2)</label>
+        <div class="friend-check-list" id="friend-check-list">
+            <p style="color:#aaa;text-align:center;margin:10px 0;">Cargando amigos...</p>
+        </div>
+
+        <small id="create-group-error" style="color:#e53935;display:block;margin-bottom:8px;"></small>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-create-group')">Cancelar</button>
+            <button class="btn-primary" onclick="crearGrupo()">Crear grupo</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: EDITAR GRUPO
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-edit-group">
+    <div class="modal-box">
+        <h3>✏️ Editar grupo</h3>
+
+        <input type="hidden" id="edit-group-id">
+
+        <label>Nombre del grupo</label>
+        <input type="text" id="edit-group-name" maxlength="40">
+
+        <label>Icono del grupo</label>
+        <div class="emoji-picker" id="emoji-picker-edit">
+            <span class="emoji-option selected" data-emoji="👥">👥</span>
+            <span class="emoji-option" data-emoji="⚽">⚽</span>
+            <span class="emoji-option" data-emoji="🏆">🏆</span>
+            <span class="emoji-option" data-emoji="🌮">🌮</span>
+            <span class="emoji-option" data-emoji="🎉">🎉</span>
+            <span class="emoji-option" data-emoji="🔥">🔥</span>
+            <span class="emoji-option" data-emoji="🎯">🎯</span>
+            <span class="emoji-option" data-emoji="🌍">🌍</span>
+            <span class="emoji-option" data-emoji="🚌">🚌</span>
+            <span class="emoji-option" data-emoji="🏟️">🏟️</span>
+        </div>
+
+        <small id="edit-group-error" style="color:#e53935;display:block;margin-bottom:8px;"></small>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
+            <button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     MODAL: CREAR TAREA
+══════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-create-task">
+    <div class="modal-box">
+        <h3>📋 Nueva tarea de grupo</h3>
+
+        <label>Título de la tarea</label>
+        <input type="text" id="new-task-title" placeholder="Ej: Reservar hotel en MTY" maxlength="80">
+
+        <label>Descripción (opcional)</label>
+        <input type="text" id="new-task-desc" placeholder="Detalles adicionales...">
+
+        <label>Puntos al completar</label>
+        <input type="number" id="new-task-points" value="100" min="10" max="1000">
+
+        <label>Asignar a (opcional)</label>
+        <select id="new-task-assigned">
+            <option value="">— Sin asignar —</option>
+        </select>
+
+        <small id="create-task-error" style="color:#e53935;display:block;margin-bottom:8px;"></small>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeModal('modal-create-task')">Cancelar</button>
+            <button class="btn-primary" onclick="crearTarea()">Crear tarea</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 
-/* ======================
-   🔥 CONFIG BACKEND
-====================== */
+/* ══════════════════════════════════════════
+   CONFIG
+══════════════════════════════════════════ */
 const API_URL = "https://fifa-chat-dr6w.onrender.com";
 
-/* ======================
+/* ══════════════════════════════════════════
    SESSION
-====================== */
-const userId = sessionStorage.getItem("user_id");
+══════════════════════════════════════════ */
+const userId   = sessionStorage.getItem("user_id");
 const userName = sessionStorage.getItem("userName");
-
 if (!userId) window.location.href = "login.html";
-
 document.getElementById("userHeaderName").textContent = userName;
 
-/* ======================
+/* ══════════════════════════════════════════
    SOCKET
-====================== */
+══════════════════════════════════════════ */
 const socket = io(API_URL);
 
-let chatId = null;
+let chatId       = null;
+let chatType     = null; // "private" | "group"
+let currentGroup = null; // objeto grupo activo
+let myFriends    = [];   // cache de amigos
 
-/* ======================
-   SIDEBAR
-====================== */
+/* ══════════════════════════════════════════
+   SIDEBAR TOGGLE
+══════════════════════════════════════════ */
 function toggleSidebar(e) {
     if (e) e.preventDefault();
-
-    const sidebar = document.getElementById("chat-sidebar");
-    sidebar.classList.toggle("collapsed");
-    sidebar.classList.toggle("open");
+    const sb = document.getElementById("chat-sidebar");
+    sb.classList.toggle("collapsed");
+    sb.classList.toggle("open");
 }
 
-/* ======================
-   JOIN CHAT ROOM
-====================== */
-function joinChat(id) {
-    if (chatId) {
-        socket.emit("leave", chatId);
-    }
+/* ══════════════════════════════════════════
+   JOIN CHAT
+══════════════════════════════════════════ */
+function joinChat(id, type, group) {
+    if (chatId) socket.emit("leave", chatId);
 
-    chatId = id;
+    chatId       = id;
+    chatType     = type;
+    currentGroup = group || null;
 
     socket.emit("join_chat", chatId);
+
+    // Mostrar/ocultar botón de tareas
+    const tasksBtn = document.getElementById("tasks-toggle-btn");
+    if (type === "group") {
+        tasksBtn.style.display = "block";
+    } else {
+        tasksBtn.style.display = "none";
+        closeTaskPanel();
+    }
 
     loadMessages();
 }
 
-/* ======================
+/* ══════════════════════════════════════════
    FRIENDS
-====================== */
+══════════════════════════════════════════ */
 async function loadFriends() {
     const res = await fetch(`${API_URL}/friends/${userId}`);
-    const friends = await res.json();
+    myFriends  = await res.json();
 
     const container = document.getElementById("friends-sidebar");
     container.innerHTML = "";
 
-    friends.forEach(f => {
+    myFriends.forEach(f => {
         const div = document.createElement("div");
         div.className = "friend-item";
         div.innerHTML = `👤 ${f.full_name}`;
-
         div.onclick = () => {
-    document.getElementById("current-group-name").textContent = f.full_name;
-    document.getElementById("header-avatar").textContent = "👤";
-    document.getElementById("header-status-text").textContent = "● Privado";
+            document.getElementById("current-group-name").textContent = f.full_name;
+            document.getElementById("header-avatar").textContent = "👤";
+            document.getElementById("header-status-text").textContent = "● Privado";
 
-    // Genera un chat_id único y consistente entre los dos usuarios
-    const id1 = Math.min(parseInt(userId), parseInt(f.id));
-    const id2 = Math.max(parseInt(userId), parseInt(f.id));
-    const privateChatId = `${id1}_${id2}`;
-
-    joinChat(privateChatId);
-};
-
+            const id1 = Math.min(parseInt(userId), parseInt(f.id));
+            const id2 = Math.max(parseInt(userId), parseInt(f.id));
+            joinChat(`${id1}_${id2}`, "private");
+        };
         container.appendChild(div);
     });
 }
 
-/* ======================
-   GROUPS (mock)
-====================== */
-function loadGroups() {
-    const groups = [
-    ];
+/* ══════════════════════════════════════════
+   GROUPS
+══════════════════════════════════════════ */
+async function loadGroups() {
+    const res = await fetch(`${API_URL}/groups/${userId}`);
+    const groups = await res.json();
 
     const container = document.getElementById("groups-sidebar");
     container.innerHTML = "";
 
-    groups.forEach(g => {
-        const div = document.createElement("div");
-        div.className = "friend-item";
-        div.innerHTML = `👥 ${g.name}`;
+    if (!groups.length) {
+        container.innerHTML = `<p style="font-size:12px;color:#aaa;padding:0 14px;">Aún no tienes grupos.</p>`;
+        return;
+    }
 
-        div.onclick = () => {
-            document.getElementById("current-group-name").textContent = g.name;
-            document.getElementById("header-avatar").textContent = "👥";
-            document.getElementById("header-status-text").textContent = "● Grupo";
-
-            joinChat(g.id);
-        };
-
-        container.appendChild(div);
-    });
+    groups.forEach(g => renderGroupItem(g, container));
 }
 
-/* ======================
-   LOAD MESSAGES
-====================== */
+function renderGroupItem(g, container) {
+    const div = document.createElement("div");
+    div.className = "friend-item";
+    div.id = `group-item-${g.id}`;
+    div.innerHTML = `
+        <div class="group-item-row" style="width:100%;">
+            <span>${g.image_url} ${g.name}</span>
+            ${g.created_by == userId
+                ? `<button class="group-edit-btn" onclick="openEditGroupModal(event, ${g.id}, '${escapeAttr(g.name)}', '${g.image_url}')">✏️</button>`
+                : ""}
+        </div>`;
+    div.onclick = (e) => {
+        if (e.target.classList.contains("group-edit-btn")) return;
+        document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
+        document.getElementById("header-avatar").textContent = g.image_url;
+        document.getElementById("header-status-text").textContent = `● Grupo · ${g.member_count} miembros`;
+        joinChat(`group_${g.id}`, "group", g);
+        loadGroupTasks(g.id);
+    };
+    container.appendChild(div);
+}
+
+function escapeAttr(s) {
+    return s.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+/* ══════════════════════════════════════════
+   MODAL HELPERS
+══════════════════════════════════════════ */
+function openModal(id)  { document.getElementById(id).classList.add("active"); }
+function closeModal(id) { document.getElementById(id).classList.remove("active"); }
+
+// Emoji pickers
+document.querySelectorAll(".emoji-picker").forEach(picker => {
+    picker.querySelectorAll(".emoji-option").forEach(opt => {
+        opt.addEventListener("click", () => {
+            picker.querySelectorAll(".emoji-option").forEach(o => o.classList.remove("selected"));
+            opt.classList.add("selected");
+        });
+    });
+});
+
+function selectedEmoji(pickerId) {
+    return document.querySelector(`#${pickerId} .emoji-option.selected`)?.dataset.emoji || "👥";
+}
+
+/* ══════════════════════════════════════════
+   MODAL: CREAR GRUPO
+══════════════════════════════════════════ */
+function openCreateGroupModal() {
+    document.getElementById("new-group-name").value = "";
+    document.getElementById("create-group-error").textContent = "";
+
+    // Resetear emoji
+    const picker = document.getElementById("emoji-picker-create");
+    picker.querySelectorAll(".emoji-option").forEach((o, i) => o.classList.toggle("selected", i === 0));
+
+    // Llenar lista de amigos con checkboxes
+    const list = document.getElementById("friend-check-list");
+    list.innerHTML = "";
+
+    if (!myFriends.length) {
+        list.innerHTML = `<p style="color:#aaa;text-align:center;margin:10px 0;">Agrega amigos primero en la sección Social.</p>`;
+    } else {
+        myFriends.forEach(f => {
+            const label = document.createElement("label");
+            label.className = "friend-check-item";
+            label.innerHTML = `
+                <input type="checkbox" value="${f.id}">
+                <span>👤 ${f.full_name}</span>`;
+            list.appendChild(label);
+        });
+    }
+
+    openModal("modal-create-group");
+}
+
+async function crearGrupo() {
+    const name = document.getElementById("new-group-name").value.trim();
+    const image_url = selectedEmoji("emoji-picker-create");
+    const errorEl = document.getElementById("create-group-error");
+
+    if (!name) { errorEl.textContent = "Escribe un nombre para el grupo."; return; }
+
+    const checked = [...document.querySelectorAll("#friend-check-list input:checked")];
+    if (checked.length < 2) {
+        errorEl.textContent = "Selecciona al menos 2 amigos (el grupo requiere mínimo 3 integrantes).";
+        return;
+    }
+
+    errorEl.textContent = "";
+    const member_ids = checked.map(c => parseInt(c.value));
+
+    try {
+        const res = await fetch(`${API_URL}/groups`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, image_url, created_by: userId, member_ids })
+        });
+
+        const data = await res.json();
+        if (!res.ok) { errorEl.textContent = data.error || "Error al crear grupo."; return; }
+
+        closeModal("modal-create-group");
+
+        // Refrescar lista de grupos y abrir el nuevo chat
+        await loadGroups();
+
+        // Simular click al grupo recién creado
+        const item = document.getElementById(`group-item-${data.id}`);
+        if (item) item.click();
+
+    } catch (err) {
+        errorEl.textContent = "Error de conexión.";
+    }
+}
+
+/* ══════════════════════════════════════════
+   MODAL: EDITAR GRUPO
+══════════════════════════════════════════ */
+function openEditGroupModal(e, groupId, currentName, currentEmoji) {
+    e.stopPropagation();
+
+    document.getElementById("edit-group-id").value = groupId;
+    document.getElementById("edit-group-name").value = currentName;
+    document.getElementById("edit-group-error").textContent = "";
+
+    // Seleccionar emoji actual
+    const picker = document.getElementById("emoji-picker-edit");
+    picker.querySelectorAll(".emoji-option").forEach(opt => {
+        opt.classList.toggle("selected", opt.dataset.emoji === currentEmoji);
+    });
+    // Si el emoji no está en el picker, seleccionar el primero
+    if (!picker.querySelector(".selected")) {
+        picker.querySelector(".emoji-option").classList.add("selected");
+    }
+
+    openModal("modal-edit-group");
+}
+
+async function guardarEdicionGrupo() {
+    const groupId = document.getElementById("edit-group-id").value;
+    const name    = document.getElementById("edit-group-name").value.trim();
+    const image_url = selectedEmoji("emoji-picker-edit");
+    const errorEl = document.getElementById("edit-group-error");
+
+    if (!name) { errorEl.textContent = "El nombre no puede estar vacío."; return; }
+
+    try {
+        const res = await fetch(`${API_URL}/groups/${groupId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, image_url, user_id: userId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) { errorEl.textContent = data.error || "Error al editar."; return; }
+
+        closeModal("modal-edit-group");
+
+        // Actualizar el nombre en el header si es el grupo activo
+        if (currentGroup && currentGroup.id == groupId) {
+            document.getElementById("current-group-name").textContent = `${image_url} ${name}`;
+            document.getElementById("header-avatar").textContent = image_url;
+            currentGroup.name      = name;
+            currentGroup.image_url = image_url;
+        }
+
+        await loadGroups();
+
+    } catch (err) {
+        errorEl.textContent = "Error de conexión.";
+    }
+}
+
+/* ══════════════════════════════════════════
+   TASK PANEL
+══════════════════════════════════════════ */
+function toggleTaskPanel() {
+    const panel = document.getElementById("task-panel");
+    panel.classList.toggle("open");
+    if (panel.classList.contains("open") && currentGroup) {
+        loadGroupTasks(currentGroup.id);
+    }
+}
+
+function closeTaskPanel() {
+    document.getElementById("task-panel").classList.remove("open");
+}
+
+async function loadGroupTasks(groupId) {
+    const list = document.getElementById("task-panel-list");
+    list.innerHTML = "<p style='color:#aaa;font-size:13px;'>Cargando...</p>";
+
+    try {
+        const res = await fetch(`${API_URL}/tasks/${groupId}`);
+        const tasks = await res.json();
+
+        if (!tasks.length) {
+            list.innerHTML = `<p style="color:#aaa;font-size:13px;text-align:center;padding:10px 0;">No hay tareas aún. ¡Crea la primera!</p>`;
+            return;
+        }
+
+        list.innerHTML = "";
+        tasks.forEach(t => {
+            const div = document.createElement("div");
+            div.className = `task-mini-card${t.completed ? " done" : ""}`;
+            div.innerHTML = `
+                <div>
+                    <h4>${t.title}</h4>
+                    <p>${t.description || ""} &nbsp;·&nbsp; <b style="color:var(--fifa-cyan)">+${t.points} pts</b>
+                    ${t.assigned_name ? `&nbsp;·&nbsp; 👤 ${t.assigned_name}` : ""}</p>
+                </div>
+                ${!t.completed
+                    ? `<button class="task-complete-btn" onclick="completarTarea(${t.id})">✔ Completar</button>`
+                    : `<span style="color:#2ecc71;font-weight:700;font-size:12px;">✔ Hecha</span>`}
+            `;
+            list.appendChild(div);
+        });
+
+    } catch (err) {
+        list.innerHTML = `<p style="color:#e53935;font-size:13px;">Error cargando tareas.</p>`;
+    }
+}
+
+/* ══════════════════════════════════════════
+   MODAL: CREAR TAREA
+══════════════════════════════════════════ */
+async function openCreateTaskModal() {
+    if (!currentGroup) return;
+
+    document.getElementById("new-task-title").value  = "";
+    document.getElementById("new-task-desc").value   = "";
+    document.getElementById("new-task-points").value = "100";
+    document.getElementById("create-task-error").textContent = "";
+
+    // Cargar miembros del grupo en el selector
+    const sel = document.getElementById("new-task-assigned");
+    sel.innerHTML = `<option value="">— Sin asignar —</option>`;
+
+    try {
+        const res = await fetch(`${API_URL}/groups/${currentGroup.id}/members`);
+        const members = await res.json();
+        members.forEach(m => {
+            const opt = document.createElement("option");
+            opt.value = m.id;
+            opt.textContent = m.full_name;
+            sel.appendChild(opt);
+        });
+    } catch {}
+
+    openModal("modal-create-task");
+}
+
+async function crearTarea() {
+    const title       = document.getElementById("new-task-title").value.trim();
+    const description = document.getElementById("new-task-desc").value.trim();
+    const points      = parseInt(document.getElementById("new-task-points").value) || 100;
+    const assigned_to = document.getElementById("new-task-assigned").value || null;
+    const errorEl     = document.getElementById("create-task-error");
+
+    if (!title) { errorEl.textContent = "Escribe un título para la tarea."; return; }
+
+    try {
+        const res = await fetch(`${API_URL}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                group_id: currentGroup.id,
+                title, description, points,
+                assigned_to, created_by: userId
+            })
+        });
+
+        const task = await res.json();
+        if (!res.ok) { errorEl.textContent = task.error || "Error al crear tarea."; return; }
+
+        closeModal("modal-create-task");
+
+        // Notificar al grupo en tiempo real
+        socket.emit("task_created", { group_id: `group_${currentGroup.id}`, task });
+
+        // Refrescar panel
+        loadGroupTasks(currentGroup.id);
+
+    } catch (err) {
+        errorEl.textContent = "Error de conexión.";
+    }
+}
+
+async function completarTarea(taskId) {
+    try {
+        const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId })
+        });
+
+        if (!res.ok) { alert("Error al completar la tarea."); return; }
+
+        const task = await res.json();
+        alert(`✅ ¡Tarea completada! +${task.points} puntos para tu cuenta.`);
+        loadGroupTasks(currentGroup.id);
+
+    } catch (err) {
+        alert("Error de conexión.");
+    }
+}
+
+// Escuchar tarea nueva en tiempo real
+socket.on("new_task", () => {
+    if (currentGroup && document.getElementById("task-panel").classList.contains("open")) {
+        loadGroupTasks(currentGroup.id);
+    }
+});
+
+/* ══════════════════════════════════════════
+   MESSAGES
+══════════════════════════════════════════ */
 async function loadMessages() {
     if (!chatId) return;
-
-    const res = await fetch(`${API_URL}/messages/${chatId}`);
+    const res  = await fetch(`${API_URL}/messages/${chatId}`);
     const msgs = await res.json();
 
     const container = document.getElementById("chat-messages-area");
     container.innerHTML = "";
-
     msgs.forEach(renderMessage);
 }
 
-/* ======================
-   RENDER MESSAGE
-====================== */
 function renderMessage(msg) {
     const container = document.getElementById("chat-messages-area");
-
     const div = document.createElement("div");
-    div.className = msg.username === userName
-        ? "message-wrapper sent"
-        : "message-wrapper received";
-
+    div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
     div.innerHTML = `
         <div class="message-bubble">
             <b>${msg.username}</b><br>
             ${msg.message}
-        </div>
-    `;
-
+        </div>`;
     container.appendChild(div);
     container.scrollTop = container.scrollHeight;
 }
 
-/* ======================
-   SOCKET EVENTS
-====================== */
 socket.on("new_message", (msg) => {
     if (msg.chat_id != chatId) return;
     renderMessage(msg);
 });
 
-/* ======================
-   SEND MESSAGE
-====================== */
 async function enviarMensaje() {
-    const input = document.getElementById("input-chat-main");
+    const input   = document.getElementById("input-chat-main");
     const message = input.value.trim();
-
     if (!message || !chatId) return;
 
-    // Enviar por Socket.io en lugar de fetch
-    socket.emit("send_message", {
-        chat_id: chatId,
-        username: userName,
-        message
-    });
-
+    socket.emit("send_message", { chat_id: chatId, username: userName, message });
     input.value = "";
 }
 
-document.getElementById("input-chat-main").addEventListener("keydown", (e) => {
+document.getElementById("input-chat-main").addEventListener("keydown", e => {
     if (e.key === "Enter") enviarMensaje();
 });
 
-/* ======================
+/* ══════════════════════════════════════════
    INIT
-====================== */
+══════════════════════════════════════════ */
 loadFriends();
 loadGroups();
 
 </script>
-
 </body>
 </html>
