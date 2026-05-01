@@ -52,30 +52,57 @@ io.on("connection", (socket) => {
         socket.leave(`chat_${String(chatId).trim()}`);
     });
 
-    socket.on("send_message", async (data) => {
-        try {
-            const chat_id = String(data.chat_id).trim();
-            const username = String(data.username).trim();
-            const message = String(data.message).trim();
+   socket.on("send_message", async (data) => {
+    try {
+        const chat_id = String(data.chat_id).trim();
+        const username = String(data.username).trim();
+        const message = String(data.message).trim();
 
-            if (!chat_id || !message) return;
+        if (!chat_id || !message) return;
 
-            await db.query(
-                `INSERT INTO messages (chat_id, username, message)
-                 VALUES ($1,$2,$3)`,
-                [chat_id, username, message]
-            );
+        // Guardar mensaje
+        await db.query(
+            `INSERT INTO messages (chat_id, username, message)
+             VALUES ($1,$2,$3)`,
+            [chat_id, username, message]
+        );
 
-            io.to(`chat_${chat_id}`).emit("new_message", {
-                chat_id,
-                username,
-                message
-            });
+        // Enviar mensaje en tiempo real
+        io.to(`chat_${chat_id}`).emit("new_message", {
+            chat_id,
+            username,
+            message
+        });
 
-        } catch (err) {
-            console.error(err);
-        }
-    });
+        // Contar mensajes del grupo
+        const count = await db.query(
+            `SELECT COUNT(*)::int AS total
+             FROM messages
+             WHERE chat_id=$1`,
+            [chat_id]
+        );
+
+        const totalMessages = count.rows[0].total;
+
+        // Completar tareas automáticas
+        await db.query(
+            `UPDATE tasks
+             SET completed=TRUE,
+                 completed_at=NOW()
+             WHERE group_id=$1
+               AND completed=FALSE
+               AND task_type='messages'
+               AND target_value <= $2`,
+            [chat_id, totalMessages]
+        );
+
+        // Refrescar tareas al grupo
+        io.to(`chat_${chat_id}`).emit("task_progress");
+
+    } catch (err) {
+        console.error(err);
+    }
+});
 
     socket.on("group_created", (data) => {
         if (data.member_ids) {
