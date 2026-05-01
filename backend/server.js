@@ -144,12 +144,13 @@ io.on("connection", (socket) => {
 
             if (!chat_id || !message) return;
 
-            await db.query(
-                `INSERT INTO messages (chat_id, username, message, message_type)
-                 VALUES ($1, $2, $3, $4)`,
-                [chat_id, username, message, message_type]
-            );
+            /* GUARDAR MENSAJE */
+            await db.query(`
+                INSERT INTO messages (chat_id, username, message, message_type)
+                VALUES ($1,$2,$3,$4)
+            `, [chat_id, username, message, message_type]);
 
+            /* ENVIAR MENSAJE AL CHAT */
             io.to(`chat_${chat_id}`).emit("new_message", {
                 chat_id,
                 username,
@@ -157,39 +158,53 @@ io.on("connection", (socket) => {
                 message_type
             });
 
+            /* SI ES GRUPO */
             if (chat_id.startsWith("group_")) {
+
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
-                // Actualizar según el tipo de mensaje enviado
-                await updateTaskProgress(chat_id, groupId, username, message_type);
-
-                // Los mensajes de texto también cuentan para tareas tipo "messages"
+                /* CONTAR MENSAJES */
                 if (message_type === "text") {
+                    await db.query(`
+                        UPDATE tasks
+                        SET current_value = (
+                            SELECT COUNT(*)
+                            FROM messages
+                            WHERE chat_id = $1
+                            AND message_type = 'text'
+                        )
+                        WHERE group_id = $2
+                        AND task_type = 'messages'
+                        AND completed = false
+                    `, [chat_id, groupId]);
 
-    await db.query(`
-        UPDATE tasks
-        SET current_value = current_value + 1
-        WHERE group_id = $1
-        AND task_type = 'messages'
-        AND completed = false
-    `,[groupId]);
+                    await db.query(`
+                        UPDATE tasks
+                        SET completed = true,
+                            completed_at = NOW()
+                        WHERE group_id = $1
+                        AND task_type = 'messages'
+                        AND completed = false
+                        AND current_value >= target_value
+                    `, [groupId]);
+                }
 
-    await db.query(`
-        UPDATE tasks
-        SET completed = true,
-            completed_at = NOW()
-        WHERE group_id = $1
-        AND task_type = 'messages'
-        AND completed = false
-        AND current_value >= target_value
-    `,[groupId]);
-}
+                /* MULTIMEDIA */
+                if (message_type === "media") {
+                    await updateTaskProgress(chat_id, groupId, username, "media");
+                }
 
+                /* LLAMADAS */
+                if (message_type === "call") {
+                    await updateTaskProgress(chat_id, groupId, username, "call");
+                }
+
+                /* REFRESCAR BARRA */
                 io.to(`chat_${chat_id}`).emit("task_progress");
             }
 
         } catch (err) {
-            console.error("❌ send_message error:", err);
+            console.log("ERROR SOCKET:", err);
         }
     });
 
