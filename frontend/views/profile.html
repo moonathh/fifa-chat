@@ -2,19 +2,152 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mi Perfil | FIFA 2026 Support</title>
 <link rel="stylesheet" href="../css/styles.css">
+
+<style>
+.profile-view{
+    padding:30px;
+}
+
+.profile-card{
+    max-width:720px;
+    margin:auto;
+    background:#fff;
+    border-radius:22px;
+    overflow:hidden;
+    box-shadow:0 20px 45px rgba(0,0,0,.08);
+}
+
+.profile-banner{
+    height:170px;
+    background:linear-gradient(135deg,#0f62fe,#00c6ff,#00d68f);
+}
+
+.profile-header{
+    margin-top:-75px;
+    padding:0 30px;
+}
+
+.profile-avatar-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:14px;
+}
+
+.avatar-frame{
+    width:150px;
+    height:150px;
+    border-radius:50%;
+    padding:6px;
+    background:linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00);
+    box-shadow:0 15px 35px rgba(0,0,0,.18);
+}
+
+.avatar-large{
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    background:#fff;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:60px;
+}
+
+.avatar-large img{
+    width:100%;
+    height:100%;
+    object-fit:cover;
+}
+
+.hidden-file{
+    display:none;
+}
+
+.frame-selector{
+    display:grid;
+    grid-template-columns:repeat(4,50px);
+    gap:12px;
+    margin-top:10px;
+}
+
+.frame-option{
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    cursor:pointer;
+    border:3px solid transparent;
+    transition:.2s;
+}
+
+.frame-option:hover{
+    transform:scale(1.06);
+}
+
+.frame-option.active{
+    border-color:#111;
+}
+
+.auth-form{
+    padding:30px !important;
+}
+
+.form-group{
+    margin-bottom:18px;
+}
+
+.form-group label{
+    display:block;
+    margin-bottom:8px;
+    font-weight:600;
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:12px;
+    border:1px solid #ddd;
+    border-radius:12px;
+}
+
+.action-row{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+}
+
+@media(max-width:700px){
+    .profile-view{
+        padding:15px;
+    }
+
+    .profile-header{
+        padding:0 20px;
+    }
+
+    .auth-form{
+        padding:20px !important;
+    }
+}
+</style>
 </head>
 
 <body>
+
 <div class="app-layout">
+
 <nav class="navbar-top">
     <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
 
     <div class="user-profile">
         <span id="navbar-user">Cargando...</span>
+
         <a href="profile.html" class="profile-trigger active-profile">
-            <div class="avatar">👤</div>
+            <div class="avatar" id="miniAvatar">👤</div>
         </a>
     </div>
 </nav>
@@ -23,38 +156,69 @@
 
 <!-- SIDEBAR -->
 <aside class="sidebar-nav">
+
     <div class="nav-section">
         <p class="nav-section-title">Comunicación</p>
-        <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
-        <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+
+        <a href="index.html" class="nav-item">
+            <span>💬</span> Chats
+        </a>
+
+        <a href="social.html" class="nav-item">
+            <span>👥</span> Social
+        </a>
     </div>
 
     <div class="nav-section">
         <p class="nav-section-title">Comunidad Local</p>
-        <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
+
+        <a href="help-mty.html" class="nav-item">
+            <span>🤠</span> Ayuda MTY
+        </a>
     </div>
 
     <div class="nav-section">
         <p class="nav-section-title">Logística</p>
-        <a href="task.html" class="nav-item"><span>📋</span> Tareas de Grupo</a>
-        <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+
+        <a href="task.html" class="nav-item">
+            <span>📋</span> Tareas de Grupo
+        </a>
+
+        <a href="rewards.html" class="nav-item">
+            <span>🎁</span> Tienda
+        </a>
     </div>
+
 </aside>
 
 <!-- MAIN -->
-<main class="chat-window" style="background: var(--bg-light); overflow-y: auto;">
+<main class="chat-window" style="background:var(--bg-light); overflow-y:auto;">
 
 <div class="view-content profile-view">
+
 <div class="profile-card">
 
 <div class="profile-banner"></div>
 
 <div class="profile-header">
-    <div class="avatar-large">👤</div>
-    <button class="btn-secondary" style="margin-top: 10px;">Cambiar Foto</button>
+
+<div class="profile-avatar-wrap">
+
+    <div class="avatar-frame" id="avatarFrame">
+        <div class="avatar-large" id="profileAvatar">👤</div>
+    </div>
+
+    <input type="file" id="fileInput" class="hidden-file" accept="image/*">
+
+    <button type="button" class="btn-secondary" id="changePhotoBtn">
+        Cambiar Foto
+    </button>
+
 </div>
 
-<form class="auth-form" style="box-shadow: none; padding: 0; margin-top: 20px;">
+</div>
+
+<form class="auth-form" style="box-shadow:none; margin-top:10px;">
 
 <div class="form-group">
     <label>Nombre de Usuario</label>
@@ -75,15 +239,62 @@
     </select>
 </div>
 
-<div style="display:flex; gap:10px;">
+<div class="form-group">
+<label>Marco de Perfil</label>
 
-    <button type="button" class="btn-primary">Editar Perfil</button>
+<div class="frame-selector">
 
-    <a href="login.html" id="logoutBtn"
-       class="btn-secondary"
-       style="background:#fff0f0; color:#ff4757; text-decoration:none; line-height:40px; text-align:center;">
-        Cerrar Sesión
-    </a>
+<div class="frame-option active"
+data-frame="linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)"
+style="background:linear-gradient(135deg,#00c6ff,#0072ff,#00ff88,#ffcc00)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#ff416c,#ff4b2b)"
+style="background:linear-gradient(135deg,#ff416c,#ff4b2b)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#7f00ff,#e100ff)"
+style="background:linear-gradient(135deg,#7f00ff,#e100ff)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#11998e,#38ef7d)"
+style="background:linear-gradient(135deg,#11998e,#38ef7d)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#f7971e,#ffd200)"
+style="background:linear-gradient(135deg,#f7971e,#ffd200)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#ee0979,#ff6a00)"
+style="background:linear-gradient(135deg,#ee0979,#ff6a00)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#4568dc,#b06ab3)"
+style="background:linear-gradient(135deg,#4568dc,#b06ab3)">
+</div>
+
+<div class="frame-option"
+data-frame="linear-gradient(135deg,#232526,#414345)"
+style="background:linear-gradient(135deg,#232526,#414345)">
+</div>
+
+</div>
+</div>
+
+<div class="action-row">
+
+<a href="login.html"
+id="logoutBtn"
+class="btn-secondary"
+style="background:#fff0f0;color:#ff4757;text-decoration:none;line-height:40px;text-align:center;">
+Cerrar Sesión
+</a>
 
 </div>
 
@@ -91,45 +302,10 @@
 
 </div>
 </div>
-
 </main>
 </div>
 </div>
 
-
-<script>
-document.addEventListener('DOMContentLoaded', async () => {
-
-    const userId = sessionStorage.getItem("user_id");
-
-    if (!userId) {
-        window.location.href = "login.html";
-        return;
-    }
-
-    try {
-        const res = await fetch(`https://fifa-chat-dr6w.onrender.com/users/${userId}`);
-
-        if (!res.ok) throw new Error("Error usuario");
-
-        const user = await res.json();
-
-        document.getElementById("navbar-user").textContent = user.full_name;
-        document.getElementById("fullName").value = user.full_name;
-        document.getElementById("email").value = user.email;
-
-    } catch (err) {
-        console.error(err);
-
-        document.getElementById("navbar-user").textContent = "Error";
-    }
-
-    document.getElementById("logoutBtn").addEventListener("click", () => {
-        sessionStorage.clear();
-    });
-
-});
-</script>
-
+<script src="../js/profile.js"></script>
 </body>
 </html>

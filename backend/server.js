@@ -424,6 +424,26 @@ app.get("/groups/:groupId/members", async (req, res) => {
     }
 });
 
+
+app.put("/users/:id/photo", async (req, res) => {
+    const { profile_photo, profile_frame } = req.body;
+
+    try {
+        const result = await db.query(`
+            UPDATE users
+            SET profile_photo = $1,
+                profile_frame = $2
+            WHERE id = $3
+            RETURNING profile_photo, profile_frame
+        `, [profile_photo, profile_frame, req.params.id]);
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
 app.post("/groups", async (req, res) => {
     const { name, image_url, created_by, member_ids } = req.body;
     const client = await db.connect();
