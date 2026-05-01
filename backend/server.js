@@ -1,6 +1,3 @@
-// ==============================
-// backend/server.js (COMPLETO)
-// ==============================
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
@@ -10,12 +7,18 @@ const { Pool } = require("pg");
 const app = express();
 const server = http.createServer(app);
 
+/* ======================
+   DB SUPABASE
+====================== */
 const db = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false },
     family: 4
 });
 
+/* ======================
+   SOCKET.IO
+====================== */
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -26,19 +29,21 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json({ limit: "5mb" }));
 
+/* ======================
+   TEST DB
+====================== */
 db.query("SELECT NOW()")
-.then(() => console.log("✅ DB conectada"))
-.catch(err => console.log(err));
+    .then(() => console.log("✅ DB conectada"))
+    .catch(err => console.error("❌ DB error:", err));
 
-/* ======================================
-   SOCKET.IO
-====================================== */
+/* ======================
+   SOCKET CHAT
+====================== */
 io.on("connection", (socket) => {
     console.log("🟢 conectado:", socket.id);
 
     socket.on("join_chat", (chatId) => {
         socket.join(`chat_${String(chatId).trim()}`);
-        console.log("joined:", `chat_${chatId}`);
     });
 
     socket.on("leave_chat", (chatId) => {
@@ -66,7 +71,15 @@ io.on("connection", (socket) => {
             });
 
         } catch (err) {
-            console.log(err);
+            console.error(err);
+        }
+    });
+
+    socket.on("group_created", (data) => {
+        if (data.member_ids) {
+            data.member_ids.forEach(memberId => {
+                io.emit(`user_${memberId}_new_group`, data.group);
+            });
         }
     });
 
@@ -79,15 +92,36 @@ io.on("connection", (socket) => {
     });
 });
 
-/* ======================================
+/* ======================
+   REGISTER
+====================== */
+app.post("/register", async (req, res) => {
+    const { full_name, email, password } = req.body;
+
+    try {
+        await db.query(
+            `INSERT INTO users (full_name, email, password)
+             VALUES ($1,$2,$3)`,
+            [full_name, email, password]
+        );
+
+        res.sendStatus(200);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
    LOGIN
-====================================== */
+====================== */
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     try {
         const result = await db.query(
-            `SELECT * FROM users
+            `SELECT *
+             FROM users
              WHERE email=$1 AND password=$2
              LIMIT 1`,
             [email, password]
@@ -104,15 +138,15 @@ app.post("/login", async (req, res) => {
     }
 });
 
-/* ======================================
+/* ======================
    USER PROFILE
-====================================== */
+====================== */
 app.get("/users/:id", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT id, full_name, email, points
+            `SELECT id, full_name, email, COALESCE(points,0) AS points
              FROM users
-             WHERE id = $1
+             WHERE id=$1
              LIMIT 1`,
             [req.params.id]
         );
@@ -136,9 +170,13 @@ app.put("/users/:id", async (req, res) => {
             `UPDATE users
              SET full_name=$1, email=$2
              WHERE id=$3
-             RETURNING id, full_name, email, points`,
+             RETURNING id, full_name, email, COALESCE(points,0) AS points`,
             [full_name, email, req.params.id]
         );
+
+        if (!result.rows.length) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
 
         res.json(result.rows[0]);
 
@@ -147,19 +185,20 @@ app.put("/users/:id", async (req, res) => {
     }
 });
 
-/* ======================================
+/* ======================
    FRIENDS
-====================================== */
+====================== */
 app.get("/friends/:userId", async (req, res) => {
     try {
-        const result = await db.query(`
-            SELECT u.id, u.full_name
-            FROM users u
-            JOIN friends f
-              ON (u.id = f.user1_id OR u.id = f.user2_id)
-            WHERE (f.user1_id=$1 OR f.user2_id=$1)
-              AND u.id != $1
-        `, [req.params.userId]);
+        const result = await db.query(
+            `SELECT u.id, u.full_name
+             FROM users u
+             JOIN friends f
+               ON (u.id=f.user1_id OR u.id=f.user2_id)
+             WHERE (f.user1_id=$1 OR f.user2_id=$1)
+               AND u.id != $1`,
+            [req.params.userId]
+        );
 
         res.json(result.rows);
 
@@ -168,9 +207,41 @@ app.get("/friends/:userId", async (req, res) => {
     }
 });
 
-/* ======================================
-   MENSAJES
-====================================== */
+app.post("/friends", async (req, res) => {
+    const { user_id, friend_email } = req.body;
+
+    try {
+        const friendResult = await db.query(
+            `SELECT id FROM users WHERE email=$1`,
+            [friend_email]
+        );
+
+        if (!friendResult.rows.length) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        const friend_id = friendResult.rows[0].id;
+
+        if (Number(friend_id) === Number(user_id)) {
+            return res.status(400).json({ error: "No puedes agregarte a ti mismo" });
+        }
+
+        await db.query(
+            `INSERT INTO friends (user1_id, user2_id)
+             VALUES ($1,$2)`,
+            [user_id, friend_id]
+        );
+
+        res.sendStatus(200);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
+   MESSAGES
+====================== */
 app.get("/messages/:chat", async (req, res) => {
     try {
         const chat = String(req.params.chat).trim();
@@ -178,7 +249,7 @@ app.get("/messages/:chat", async (req, res) => {
         const result = await db.query(
             `SELECT *
              FROM messages
-             WHERE TRIM(chat_id) = $1
+             WHERE TRIM(chat_id)=$1
              ORDER BY created_at ASC`,
             [chat]
         );
@@ -190,21 +261,56 @@ app.get("/messages/:chat", async (req, res) => {
     }
 });
 
-/* ======================================
+app.post("/messages", async (req, res) => {
+    const { chat_id, username, message } = req.body;
+
+    try {
+        await db.query(
+            `INSERT INTO messages (chat_id, username, message)
+             VALUES ($1,$2,$3)`,
+            [chat_id, username, message]
+        );
+
+        res.sendStatus(200);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
    GROUPS
-====================================== */
+====================== */
 app.get("/groups/:userId", async (req, res) => {
     try {
-        const result = await db.query(`
-            SELECT g.id, g.name, g.image_url, g.created_by,
-                   COUNT(gm2.user_id) AS member_count
-            FROM groups g
-            JOIN group_members gm ON gm.group_id = g.id
-            LEFT JOIN group_members gm2 ON gm2.group_id = g.id
-            WHERE gm.user_id = $1
-            GROUP BY g.id
-            ORDER BY g.created_at DESC
-        `, [req.params.userId]);
+        const result = await db.query(
+            `SELECT g.id, g.name, g.image_url, g.created_by,
+                    COUNT(gm2.user_id) AS member_count
+             FROM groups g
+             JOIN group_members gm ON gm.group_id=g.id
+             LEFT JOIN group_members gm2 ON gm2.group_id=g.id
+             WHERE gm.user_id=$1
+             GROUP BY g.id, g.name, g.image_url, g.created_by, g.created_at
+             ORDER BY g.created_at DESC`,
+            [req.params.userId]
+        );
+
+        res.json(result.rows);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.get("/groups/:groupId/members", async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT u.id, u.full_name
+             FROM users u
+             JOIN group_members gm ON gm.user_id=u.id
+             WHERE gm.group_id=$1`,
+            [req.params.groupId]
+        );
 
         res.json(result.rows);
 
@@ -222,10 +328,10 @@ app.post("/groups", async (req, res) => {
         await client.query("BEGIN");
 
         const groupResult = await client.query(
-            `INSERT INTO groups(name,image_url,created_by)
-             VALUES($1,$2,$3)
+            `INSERT INTO groups (name,image_url,created_by)
+             VALUES ($1,$2,$3)
              RETURNING *`,
-            [name, image_url, created_by]
+            [name, image_url || "👥", created_by]
         );
 
         const group = groupResult.rows[0];
@@ -233,14 +339,14 @@ app.post("/groups", async (req, res) => {
         const allMembers = [
             ...new Set([
                 Number(created_by),
-                ...member_ids.map(Number)
+                ...(member_ids || []).map(Number)
             ])
         ];
 
         for (const uid of allMembers) {
             await client.query(
-                `INSERT INTO group_members(group_id,user_id)
-                 VALUES($1,$2)
+                `INSERT INTO group_members (group_id,user_id)
+                 VALUES ($1,$2)
                  ON CONFLICT DO NOTHING`,
                 [group.id, uid]
             );
@@ -248,10 +354,7 @@ app.post("/groups", async (req, res) => {
 
         await client.query("COMMIT");
 
-        res.json({
-            ...group,
-            member_ids: allMembers
-        });
+        res.json({ ...group, member_ids: allMembers });
 
     } catch (err) {
         await client.query("ROLLBACK");
@@ -261,18 +364,41 @@ app.post("/groups", async (req, res) => {
     }
 });
 
-/* ======================================
+/* ======================
    TASKS
-====================================== */
+====================== */
 app.get("/tasks/:groupId", async (req, res) => {
     try {
-        const result = await db.query(`
-            SELECT t.*, u.full_name AS assigned_name
-            FROM tasks t
-            LEFT JOIN users u ON u.id=t.assigned_to
-            WHERE t.group_id=$1
-            ORDER BY t.created_at DESC
-        `, [req.params.groupId]);
+        const result = await db.query(
+            `SELECT t.*, u.full_name AS assigned_name
+             FROM tasks t
+             LEFT JOIN users u ON u.id=t.assigned_to
+             WHERE t.group_id=$1
+             ORDER BY t.created_at DESC`,
+            [req.params.groupId]
+        );
+
+        res.json(result.rows);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.get("/tasks/user/:userId", async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT t.*, g.name AS group_name,
+                    u.full_name AS assigned_name
+             FROM tasks t
+             JOIN groups g ON g.id=t.group_id
+             JOIN group_members gm
+               ON gm.group_id=t.group_id
+              AND gm.user_id=$1
+             LEFT JOIN users u ON u.id=t.assigned_to
+             ORDER BY t.completed ASC, t.created_at DESC`,
+            [req.params.userId]
+        );
 
         res.json(result.rows);
 
@@ -292,19 +418,20 @@ app.post("/tasks", async (req, res) => {
     } = req.body;
 
     try {
-        const result = await db.query(`
-            INSERT INTO tasks
-            (group_id,title,description,points,assigned_to,created_by)
-            VALUES($1,$2,$3,$4,$5,$6)
-            RETURNING *
-        `, [
-            group_id,
-            title,
-            description,
-            points,
-            assigned_to || null,
-            created_by
-        ]);
+        const result = await db.query(
+            `INSERT INTO tasks
+             (group_id,title,description,points,assigned_to,created_by)
+             VALUES ($1,$2,$3,$4,$5,$6)
+             RETURNING *`,
+            [
+                group_id,
+                title,
+                description || "",
+                points || 100,
+                assigned_to || null,
+                created_by
+            ]
+        );
 
         res.json(result.rows[0]);
 
@@ -313,9 +440,42 @@ app.post("/tasks", async (req, res) => {
     }
 });
 
-/* ======================================
-   START
-====================================== */
+app.patch("/tasks/:taskId/complete", async (req, res) => {
+    const { user_id } = req.body;
+
+    try {
+        const result = await db.query(
+            `UPDATE tasks
+             SET completed=TRUE,
+                 completed_at=NOW()
+             WHERE id=$1
+             RETURNING *`,
+            [req.params.taskId]
+        );
+
+        if (!result.rows.length) {
+            return res.status(404).json({ error: "Tarea no encontrada" });
+        }
+
+        const task = result.rows[0];
+
+        await db.query(
+            `UPDATE users
+             SET points = COALESCE(points,0) + $1
+             WHERE id=$2`,
+            [task.points, user_id]
+        );
+
+        res.json(task);
+
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
+   SERVER
+====================== */
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
