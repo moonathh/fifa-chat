@@ -386,26 +386,25 @@
 
         <section class="chat-messages" id="chat-messages-area"></section>
 
-        <footer class="input-bar" style="flex-direction:column;gap:0;padding:0;">
-            <!-- Preview de archivo seleccionado -->
-            <div id="media-preview" style="display:none;padding:8px 12px;background:#f0f4ff;
-                 border-top:1px solid #e0e0e0;align-items:center;gap:10px;flex-wrap:wrap;">
-                <span id="media-preview-name" style="font-size:13px;color:#333;flex:1;"></span>
-                <button onclick="cancelMedia()"
-                    style="border:none;background:none;color:#ff4757;cursor:pointer;font-size:18px;line-height:1;">✕</button>
-            </div>
-            <div style="display:flex;gap:8px;padding:10px 12px;align-items:center;">
-                <!-- Botón multimedia -->
-                <input type="file" id="media-file-input" accept="image/*,video/*"
-                       style="display:none;" onchange="onMediaSelected(this)">
-                <button onclick="document.getElementById('media-file-input').click()"
-                    style="background:none;border:none;cursor:pointer;font-size:22px;
-                           padding:4px;border-radius:8px;transition:.2s;"
-                    title="Adjuntar foto o video">📎</button>
-                <input type="text" id="input-chat-main" placeholder="Enviar mensaje..."
-                       style="flex:1;">
-                <button onclick="enviarMensaje()">Enviar</button>
-            </div>
+        <!-- Preview multimedia (encima del input bar) -->
+        <div id="media-preview" style="display:none;padding:8px 14px;background:#f0f4ff;
+             border-top:1px solid #dde3f0;align-items:center;gap:10px;">
+            <span id="media-preview-name" style="font-size:13px;color:#333;flex:1;overflow:hidden;
+                  white-space:nowrap;text-overflow:ellipsis;"></span>
+            <button onclick="cancelMedia()"
+                style="border:none;background:none;color:#ff4757;cursor:pointer;
+                       font-size:18px;line-height:1;flex-shrink:0;">✕</button>
+        </div>
+
+        <footer class="input-bar">
+            <input type="file" id="media-file-input" accept="image/*,video/*"
+                   style="display:none;" onchange="onMediaSelected(this)">
+            <button onclick="document.getElementById('media-file-input').click()"
+                style="background:none;border:none;cursor:pointer;font-size:22px;
+                       padding:4px 6px;border-radius:8px;flex-shrink:0;"
+                title="Adjuntar foto o video">📎</button>
+            <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
+            <button onclick="enviarMensaje()">Enviar</button>
         </footer>
 
     </main>
