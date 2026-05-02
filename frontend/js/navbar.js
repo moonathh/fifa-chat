@@ -4,11 +4,10 @@
     const API    = "https://fifa-chat-dr6w.onrender.com";
     const userId = sessionStorage.getItem("user_id");
 
-    if (!userId) return; // el redirect lo maneja cada página
+    if (!userId) return;
 
-    // ── Busca el div.avatar del navbar (el que lleva al perfil) ──
-    const avatarEl  = document.querySelector(".profile-trigger .avatar, a[href='profile.html'] .avatar");
-    const nameEls   = document.querySelectorAll(
+    const avatarEl = document.querySelector(".profile-trigger .avatar, a[href='profile.html'] .avatar");
+    const nameEls  = document.querySelectorAll(
         "#navbar-user, #userHeaderName, #user-name-display, .user-profile > span"
     );
 
@@ -17,19 +16,21 @@
         if (!res.ok) return;
         const user = await res.json();
 
-        // Nombre en navbar
-        nameEls.forEach(el => {
-            if (el) el.textContent = user.full_name;
-        });
+        // Nombre
+        nameEls.forEach(el => { if (el) el.textContent = user.full_name; });
 
-        // Foto de perfil
-        if (user.profile_photo && avatarEl) {
+        if (!avatarEl) return;
+
+        // Tamaño fijo siempre, tenga foto o no
+        avatarEl.style.cssText = `
+            width:36px; height:36px; border-radius:50%;
+            overflow:hidden; position:relative; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+        `;
+
+        // Foto
+        if (user.profile_photo) {
             avatarEl.textContent = "";
-            avatarEl.style.cssText = `
-                width:36px; height:36px; border-radius:50%;
-                overflow:hidden; position:relative;
-                display:flex; align-items:center; justify-content:center;
-            `;
             const img = document.createElement("img");
             img.src = user.profile_photo;
             img.style.cssText = `
@@ -40,15 +41,14 @@
             avatarEl.appendChild(img);
         }
 
-        // Marco del avatar si tiene
-        if (user.profile_frame && avatarEl) {
-            const link = avatarEl.closest("a");
-            if (link) {
-                link.style.padding      = "2px";
-                link.style.borderRadius = "50%";
-                link.style.background   = user.profile_frame;
-                link.style.display      = "flex";
-            }
+        // Marco — se aplica al propio avatarEl con outline, no al <a>
+        if (user.profile_frame) {
+            avatarEl.style.outline       = "2.5px solid transparent";
+            avatarEl.style.boxShadow     = `0 0 0 2.5px transparent`;
+            avatarEl.style.background    = user.profile_frame;
+            // Wrapeamos la imagen para que el marco no tape la foto
+            avatarEl.style.padding       = "2px";
+            avatarEl.style.backgroundClip = "padding-box";
         }
 
     } catch (err) {
