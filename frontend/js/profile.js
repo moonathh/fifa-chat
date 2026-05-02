@@ -38,9 +38,25 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     /* ── RENDER FOTO ── */
     function renderPhoto(src) {
-        const img = `<img src="${src}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
-        profileAvatar.innerHTML = img;
-        miniAvatar.innerHTML    = img;
+        // Avatar grande del perfil
+        profileAvatar.style.position = "relative";
+        profileAvatar.style.overflow = "hidden";
+        profileAvatar.innerHTML = `<img src="${src}"
+            style="position:absolute;top:0;left:0;
+                   width:100%;height:100%;
+                   border-radius:50%;object-fit:cover;display:block;">`;
+
+        // Mini avatar navbar — tamaño fijo para que no explote
+        miniAvatar.style.width          = "36px";
+        miniAvatar.style.height         = "36px";
+        miniAvatar.style.borderRadius   = "50%";
+        miniAvatar.style.overflow       = "hidden";
+        miniAvatar.style.position       = "relative";
+        miniAvatar.style.display        = "flex";
+        miniAvatar.innerHTML = `<img src="${src}"
+            style="position:absolute;top:0;left:0;
+                   width:100%;height:100%;
+                   border-radius:50%;object-fit:cover;display:block;">`;
     }
 
     /* ── RENDER ÍCONO EQUIPADO sobre el avatar ── */
