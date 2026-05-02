@@ -386,9 +386,26 @@
 
         <section class="chat-messages" id="chat-messages-area"></section>
 
-        <footer class="input-bar">
-            <input type="text" id="input-chat-main" placeholder="Enviar mensaje...">
-            <button onclick="enviarMensaje()">Enviar</button>
+        <footer class="input-bar" style="flex-direction:column;gap:0;padding:0;">
+            <!-- Preview de archivo seleccionado -->
+            <div id="media-preview" style="display:none;padding:8px 12px;background:#f0f4ff;
+                 border-top:1px solid #e0e0e0;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span id="media-preview-name" style="font-size:13px;color:#333;flex:1;"></span>
+                <button onclick="cancelMedia()"
+                    style="border:none;background:none;color:#ff4757;cursor:pointer;font-size:18px;line-height:1;">✕</button>
+            </div>
+            <div style="display:flex;gap:8px;padding:10px 12px;align-items:center;">
+                <!-- Botón multimedia -->
+                <input type="file" id="media-file-input" accept="image/*,video/*"
+                       style="display:none;" onchange="onMediaSelected(this)">
+                <button onclick="document.getElementById('media-file-input').click()"
+                    style="background:none;border:none;cursor:pointer;font-size:22px;
+                           padding:4px;border-radius:8px;transition:.2s;"
+                    title="Adjuntar foto o video">📎</button>
+                <input type="text" id="input-chat-main" placeholder="Enviar mensaje..."
+                       style="flex:1;">
+                <button onclick="enviarMensaje()">Enviar</button>
+            </div>
         </footer>
 
     </main>
@@ -695,11 +712,28 @@ function renderMessage(msg) {
     const c   = document.getElementById("chat-messages-area");
     const div = document.createElement("div");
     div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
-    const typeIcon = msg.message_type === "media" ? "📸 " : msg.message_type === "call" ? "📹 " : "";
+
+    let mediaHTML = "";
+    if (msg.message_type === "media") {
+        const url = msg.message;
+        const isVideo = url.match(/\.(mp4|webm|mov|avi)(\?|$)/i);
+        if (isVideo) {
+            mediaHTML = `<video src="${url}" controls
+                style="max-width:100%;max-height:260px;border-radius:10px;display:block;margin-top:6px;">
+            </video>`;
+        } else {
+            mediaHTML = `<img src="${url}" alt="imagen"
+                style="max-width:100%;max-height:260px;border-radius:10px;display:block;
+                       margin-top:6px;cursor:pointer;"
+                onclick="window.open('${url}','_blank')">`;
+        }
+    }
+
     div.innerHTML = `
         <div class="message-bubble">
-            <b>${msg.username}</b><br>
-            ${typeIcon}${msg.message}
+            <b style="font-size:12px;opacity:.8;">${msg.username}</b>
+            ${msg.message_type !== "media" ? `<br>${msg.message}` : ""}
+            ${mediaHTML}
         </div>`;
     c.appendChild(div);
     c.scrollTop = c.scrollHeight;
@@ -709,7 +743,34 @@ function renderMessage(msg) {
 async function enviarMensaje() {
     const input   = document.getElementById("input-chat-main");
     const message = input.value.trim();
-    if (!message || !chatId) return;
+    if (!chatId) return;
+
+    // Si hay archivo multimedia pendiente, subirlo primero
+    if (pendingMediaFile) {
+        const sendBtn = document.querySelector(".input-bar button:last-child");
+        sendBtn.textContent = "⏳";
+        sendBtn.disabled = true;
+        try {
+            const url = await uploadToSupabase(pendingMediaFile);
+            socket.emit("send_message", {
+                chat_id: chatId,
+                username: userName,
+                message: url,
+                message_type: "media"
+            });
+            cancelMedia();
+        } catch (err) {
+            alert("Error al subir el archivo. Intenta de nuevo.");
+            console.error(err);
+        } finally {
+            sendBtn.textContent = "Enviar";
+            sendBtn.disabled = false;
+        }
+        if (message) input.value = "";
+        return;
+    }
+
+    if (!message) return;
     socket.emit("send_message", {
         chat_id: chatId,
         username: userName,
@@ -815,6 +876,48 @@ async function crearTarea() {
     });
     closeModal("modal-create-task");
     loadGroupTasks(currentGroup.id);
+}
+
+/* ── MULTIMEDIA ── */
+const SUPABASE_URL  = "https://ktfojwoghksilundhyuh.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Zm9qd29naGtzaWx1bmRoeXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDYyNjAsImV4cCI6MjA5MTg4MjI2MH0.WN4mZ2AoAU148zKAtip-Ixd-cG0WJOM2bDB_DIjMA1E";
+
+let pendingMediaFile = null;
+
+function onMediaSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    pendingMediaFile = file;
+    const preview = document.getElementById("media-preview");
+    const name    = document.getElementById("media-preview-name");
+    preview.style.display = "flex";
+    name.textContent = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+}
+
+function cancelMedia() {
+    pendingMediaFile = null;
+    document.getElementById("media-file-input").value = "";
+    document.getElementById("media-preview").style.display = "none";
+    document.getElementById("media-preview-name").textContent = "";
+}
+
+async function uploadToSupabase(file) {
+    const ext      = file.name.split(".").pop();
+    const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    const res = await fetch(
+        `${SUPABASE_URL}/storage/v1/object/media/${filename}`,
+        {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${SUPABASE_ANON}`,
+                "Content-Type": file.type,
+                "x-upsert": "true"
+            },
+            body: file
+        }
+    );
+    if (!res.ok) throw new Error("Upload failed");
+    return `${SUPABASE_URL}/storage/v1/object/public/media/${filename}`;
 }
 
 /* INIT */
