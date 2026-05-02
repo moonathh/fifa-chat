@@ -24,18 +24,16 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     /* ── CATÁLOGO de íconos (mismo que rewards.html) ── */
     const ICON_CATALOG = [
-        { id: "star_gold",   emoji: "⭐", label: "Estrella Dorada",  cost: 200  },
-        { id: "crown",       emoji: "👑", label: "Corona",           cost: 500  },
-        { id: "fire",        emoji: "🔥", label: "Fuego",            cost: 150  },
-        { id: "trophy",      emoji: "🏆", label: "Trofeo",           cost: 300  },
-        { id: "diamond",     emoji: "💎", label: "Diamante",         cost: 750  },
-        { id: "rocket",      emoji: "🚀", label: "Cohete",           cost: 400  },
-        { id: "lightning",   emoji: "⚡", label: "Rayo",             cost: 250  },
-        { id: "shield",      emoji: "🛡️", label: "Escudo",           cost: 350  },
-        { id: "alien",       emoji: "👾", label: "Alien",            cost: 600  },
-        { id: "unicorn",     emoji: "🦄", label: "Unicornio",        cost: 800  },
-        { id: "octopus",     emoji: "🐙", label: "Pulpo",            cost: 450  },
-        { id: "dragon",      emoji: "🐉", label: "Dragón",           cost: 1000 },
+        { id: "icon1", img: "../imagenes/icon1.png", label: "Ícono Bronce"     },
+        { id: "icon2", img: "../imagenes/icon2.png", label: "Ícono Plata"      },
+        { id: "icon3", img: "../imagenes/icon3.png", label: "Ícono Oro"        },
+        { id: "icon4", img: "../imagenes/icon4.png", label: "Ícono Platino"    },
+        { id: "icon5", img: "../imagenes/icon5.png", label: "Ícono Élite"      },
+        { id: "star1", img: "../imagenes/star1.png", label: "Estrella Bronce"  },
+        { id: "star2", img: "../imagenes/star2.png", label: "Estrella Plata"   },
+        { id: "star3", img: "../imagenes/star3.png", label: "Estrella Oro"     },
+        { id: "star4", img: "../imagenes/star4.png", label: "Estrella Platino" },
+        { id: "star5", img: "../imagenes/star5.png", label: "Estrella Élite"   },
     ];
 
     /* ── RENDER FOTO ── */
@@ -65,7 +63,8 @@ document.addEventListener("DOMContentLoaded", async () => {
             font-size:22px; box-shadow:0 4px 12px rgba(0,0,0,.2);
             z-index:10;
         `;
-        badge.textContent = iconData.emoji;
+        badge.innerHTML = `<img src="${iconData.img}" alt="${iconData.label}"
+            style="width:28px;height:28px;object-fit:contain;">`;
 
         // El wrap del avatar necesita position:relative
         const wrap = document.getElementById("avatarFrame");
@@ -128,7 +127,8 @@ document.addEventListener("DOMContentLoaded", async () => {
                 transition:.2s;
             `;
             tile.innerHTML = `
-                <span style="font-size:30px">${data.emoji}</span>
+                <img src="${data.img}" alt="${data.label}"
+                     style="width:36px;height:36px;object-fit:contain;">
                 <span style="font-size:11px;font-weight:600;color:${isEquipped ? "#0f62fe" : "#555"};text-align:center;">${data.label}</span>
                 <span style="font-size:10px;color:${isEquipped ? "#0f62fe" : "#aaa"};">${isEquipped ? "✓ Equipado" : "Equipar"}</span>
             `;

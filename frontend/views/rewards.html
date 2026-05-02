@@ -194,18 +194,16 @@
         }
 
         const ICON_CATALOG = [
-            { id: "star_gold",  emoji: "⭐", label: "Estrella Dorada",  cost: 200  },
-            { id: "crown",      emoji: "👑", label: "Corona",           cost: 500  },
-            { id: "fire",       emoji: "🔥", label: "Fuego",            cost: 150  },
-            { id: "trophy",     emoji: "🏆", label: "Trofeo",           cost: 300  },
-            { id: "diamond",    emoji: "💎", label: "Diamante",         cost: 750  },
-            { id: "rocket",     emoji: "🚀", label: "Cohete",           cost: 400  },
-            { id: "lightning",  emoji: "⚡", label: "Rayo",             cost: 250  },
-            { id: "shield",     emoji: "🛡️", label: "Escudo",           cost: 350  },
-            { id: "alien",      emoji: "👾", label: "Alien",            cost: 600  },
-            { id: "unicorn",    emoji: "🦄", label: "Unicornio",        cost: 800  },
-            { id: "octopus",    emoji: "🐙", label: "Pulpo",            cost: 450  },
-            { id: "dragon",     emoji: "🐉", label: "Dragón",           cost: 1000 },
+            { id: "icon1", img: "../imagenes/icon1.png", label: "Ícono Bronce",      cost: 100  },
+            { id: "icon2", img: "../imagenes/icon2.png", label: "Ícono Plata",       cost: 300  },
+            { id: "icon3", img: "../imagenes/icon3.png", label: "Ícono Oro",         cost: 600  },
+            { id: "icon4", img: "../imagenes/icon4.png", label: "Ícono Platino",     cost: 1000 },
+            { id: "icon5", img: "../imagenes/icon5.png", label: "Ícono Élite",       cost: 2000 },
+            { id: "star1", img: "../imagenes/star1.png", label: "Estrella Bronce",   cost: 150  },
+            { id: "star2", img: "../imagenes/star2.png", label: "Estrella Plata",    cost: 400  },
+            { id: "star3", img: "../imagenes/star3.png", label: "Estrella Oro",      cost: 750  },
+            { id: "star4", img: "../imagenes/star4.png", label: "Estrella Platino",  cost: 1200 },
+            { id: "star5", img: "../imagenes/star5.png", label: "Estrella Élite",    cost: 2500 },
         ];
 
         let userPoints = 0;
@@ -238,7 +236,8 @@
                 const card = document.createElement("div");
                 card.className = "icon-shop-card" + (owned ? " owned" : "");
                 card.innerHTML = `
-                    <span class="icon-emoji">${icon.emoji}</span>
+                    <img src="${icon.img}" alt="${icon.label}"
+                         style="width:60px;height:60px;object-fit:contain;margin-bottom:8px;">
                     <div class="icon-label">${icon.label}</div>
                     <div class="icon-cost">⭐ ${icon.cost} pts</div>
                     ${owned
