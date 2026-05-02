@@ -74,7 +74,6 @@
 .btn-cancel{ background:#eceff3; color:#333; }
 .btn-primary{ background:#00bcd4; color:#fff; }
 
-/* Task type selector */
 .task-type-grid{
     display:grid;
     grid-template-columns: repeat(3,1fr);
@@ -101,7 +100,6 @@
 .task-type-option .icon{ font-size:22px; margin-bottom:4px; }
 .task-type-option .label{ font-size:11px; font-weight:700; color:#444; }
 
-/* Points slider */
 .points-row{
     display:flex;
     align-items:center;
@@ -126,7 +124,6 @@
     text-align:center;
 }
 
-/* SIDEBAR */
 .chat-sidebar{
     width:320px;
     transition:.25s;
@@ -202,7 +199,6 @@
     cursor:pointer;
 }
 
-/* TASKS PANEL */
 .task-panel-toggle{
     background:#fff;
     border:1px solid #ddd;
@@ -322,7 +318,7 @@
     border:1px solid #ddd;
 }
 </style>
-<script src="../js/navbar.js"></script>
+
 </head>
 
 <body>
@@ -333,13 +329,12 @@
     <div class="logo-area">🏆 FIFA 2026™ Support Chat</div>
     <div class="user-profile">
         <span id="userHeaderName">Invitado</span>
-        <a href="profile.html"><div class="avatar">👤</div></a>
+        <a href="profile.html"><div class="avatar" id="miniAvatar">👤</div></a>
     </div>
 </nav>
 
 <div class="main-container">
 
-    <!-- MENU -->
     <aside class="sidebar-nav">
         <div class="nav-section">
             <p class="nav-section-title">Comunicación</p>
@@ -357,7 +352,6 @@
         </div>
     </aside>
 
-    <!-- CHAT SIDEBAR -->
     <aside class="chat-sidebar collapsed" id="chat-sidebar">
         <div style="padding:15px;font-weight:700;">💬 Conversaciones</div>
         <div style="padding:10px 15px;font-size:12px;">Amigos</div>
@@ -367,7 +361,6 @@
         <button class="create-group-btn" onclick="openCreateGroupModal()">➕ Crear grupo</button>
     </aside>
 
-    <!-- CHAT MAIN -->
     <main class="chat-window">
 
         <header class="chat-header">
@@ -497,12 +490,13 @@
 <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 
 <script>
-    window.onerror = function(msg, url, line){
+window.onerror = function(msg, url, line){
     console.log("ERROR:", msg, "Línea:", line);
 };
+
 const API_URL = "https://fifa-chat-dr6w.onrender.com";
 
-const userId = sessionStorage.getItem("user_id") || localStorage.getItem("user_id");
+const userId   = sessionStorage.getItem("user_id")  || localStorage.getItem("user_id");
 const userName = sessionStorage.getItem("userName") || localStorage.getItem("userName");
 
 if (!userId || !userName) location.href = "login.html";
@@ -511,10 +505,10 @@ document.getElementById("userHeaderName").textContent = userName;
 
 const socket = io(API_URL);
 
-let chatId = null;
+let chatId       = null;
 let currentGroup = null;
-let myFriends = [];
-let chatType = "private";
+let myFriends    = [];
+let chatType     = "private";
 
 const TASK_TYPE_LABELS = {
     messages: { icon: "💬", label: "Mensajes" },
@@ -569,8 +563,8 @@ function selectedTaskType() {
 /* CHAT */
 function joinChat(id, type, group = null) {
     if (chatId) socket.emit("leave_chat", chatId);
-    chatId = id;
-    chatType = type;
+    chatId       = id;
+    chatType     = type;
     currentGroup = group;
     socket.emit("join_chat", chatId);
 
@@ -647,41 +641,27 @@ function closeTaskPanel() {
 
 async function loadGroupTasks(groupId) {
     const list = document.getElementById("task-panel-list");
-
-    try{
+    try {
         list.innerHTML = "Cargando...";
-
-        const res = await fetch(`${API_URL}/tasks/${groupId}`);
+        const res   = await fetch(`${API_URL}/tasks/${groupId}`);
         const tasks = await res.json();
-
         list.innerHTML = "";
-
-        if(!tasks.length){
-            list.innerHTML = "Sin tareas";
-            return;
-        }
-
+        if (!tasks.length) { list.innerHTML = "Sin tareas"; return; }
         tasks.forEach(t => {
-
-            const current = Number(t.current_value)||0;
-            const target = Number(t.target_value)||1;
-            const percent = Math.min((current/target)*100,100);
-
+            const current = Number(t.current_value) || 0;
+            const target  = Number(t.target_value)  || 1;
+            const percent = Math.min((current / target) * 100, 100);
             const div = document.createElement("div");
             div.className = "task-mini-card";
-
             div.innerHTML = `
                 <h4>${t.title}</h4>
                 <p>${current}/${target}</p>
                 <div class="progress-wrap">
                     <div class="progress-bar" style="width:${percent}%"></div>
-                </div>
-            `;
-
+                </div>`;
             list.appendChild(div);
         });
-
-    }catch(err){
+    } catch (err) {
         list.innerHTML = "Error cargando tareas";
         console.error(err);
     }
@@ -698,28 +678,24 @@ socket.on("new_message", (msg) => {
 });
 
 socket.on("task_progress", async () => {
-    if(chatType==="group" && currentGroup){
-        await loadGroupTasks(currentGroup.id);
-    }
+    if (chatType === "group" && currentGroup) await loadGroupTasks(currentGroup.id);
 });
 
 /* MESSAGES */
 async function loadMessages() {
     if (!chatId) return;
-    const res = await fetch(`${API_URL}/messages/${chatId}`);
+    const res  = await fetch(`${API_URL}/messages/${chatId}`);
     const msgs = await res.json();
-    const c = document.getElementById("chat-messages-area");
+    const c    = document.getElementById("chat-messages-area");
     c.innerHTML = "";
     msgs.forEach(renderMessage);
 }
 
 function renderMessage(msg) {
-    const c = document.getElementById("chat-messages-area");
+    const c   = document.getElementById("chat-messages-area");
     const div = document.createElement("div");
     div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
-
     const typeIcon = msg.message_type === "media" ? "📸 " : msg.message_type === "call" ? "📹 " : "";
-
     div.innerHTML = `
         <div class="message-bubble">
             <b>${msg.username}</b><br>
@@ -731,19 +707,16 @@ function renderMessage(msg) {
 
 /* SEND */
 async function enviarMensaje() {
-    const input = document.getElementById("input-chat-main");
+    const input   = document.getElementById("input-chat-main");
     const message = input.value.trim();
     if (!message || !chatId) return;
-
     socket.emit("send_message", {
         chat_id: chatId,
         username: userName,
         message,
         message_type: "text"
     });
-
     input.value = "";
-
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
         setTimeout(() => loadGroupTasks(currentGroup.id), 600);
@@ -763,17 +736,15 @@ function openCreateGroupModal() {
 }
 
 async function crearGrupo() {
-    const name = document.getElementById("new-group-name").value.trim();
+    const name      = document.getElementById("new-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-create");
-    const checked = [...document.querySelectorAll("#friend-check-list input:checked")];
+    const checked   = [...document.querySelectorAll("#friend-check-list input:checked")];
     const member_ids = checked.map(x => +x.value);
-
     await fetch(`${API_URL}/groups`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, image_url, created_by: userId, member_ids })
     });
-
     closeModal("modal-create-group");
     loadGroups();
 }
@@ -781,14 +752,14 @@ async function crearGrupo() {
 /* GROUP EDIT */
 function openEditGroupModal(e, id, name) {
     e.stopPropagation();
-    document.getElementById("edit-group-id").value = id;
+    document.getElementById("edit-group-id").value  = id;
     document.getElementById("edit-group-name").value = name;
     openModal("modal-edit-group");
 }
 
 async function guardarEdicionGrupo() {
-    const id = document.getElementById("edit-group-id").value;
-    const name = document.getElementById("edit-group-name").value.trim();
+    const id        = document.getElementById("edit-group-id").value;
+    const name      = document.getElementById("edit-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-edit");
     await fetch(`${API_URL}/groups/${id}`, {
         method: "PUT",
@@ -801,63 +772,47 @@ async function guardarEdicionGrupo() {
 
 /* CREATE TASK */
 async function openCreateTaskModal() {
-    // Cargar miembros del grupo en el select
     const select = document.getElementById("new-task-assigned");
     select.innerHTML = `<option value="">— Cualquiera del grupo —</option>`;
-
     if (currentGroup) {
-        const res = await fetch(`${API_URL}/groups/${currentGroup.id}/members`);
+        const res     = await fetch(`${API_URL}/groups/${currentGroup.id}/members`);
         const members = await res.json();
         members.forEach(m => {
             const opt = document.createElement("option");
-            opt.value = m.id;
+            opt.value       = m.id;
             opt.textContent = m.full_name;
             select.appendChild(opt);
         });
     }
-
-    // Reset form
-    document.getElementById("new-task-title").value = "";
-    document.getElementById("new-task-desc").value = "";
+    document.getElementById("new-task-title").value  = "";
+    document.getElementById("new-task-desc").value   = "";
     document.getElementById("new-task-target").value = "10";
-    document.getElementById("new-task-points-slider").value = "100";
+    document.getElementById("new-task-points-slider").value      = "100";
     document.getElementById("new-task-points-badge").textContent = "100";
     document.querySelectorAll(".task-type-option").forEach((el, i) => {
         el.classList.toggle("selected", i === 0);
     });
     document.getElementById("target-label").textContent = TARGET_LABELS["messages"];
-
     openModal("modal-create-task");
 }
 
 async function crearTarea() {
-    const title = document.getElementById("new-task-title").value.trim();
-    const description = document.getElementById("new-task-desc").value.trim();
-    const points = parseInt(document.getElementById("new-task-points-slider").value);
-    const task_type = selectedTaskType();
+    const title        = document.getElementById("new-task-title").value.trim();
+    const description  = document.getElementById("new-task-desc").value.trim();
+    const points       = parseInt(document.getElementById("new-task-points-slider").value);
+    const task_type    = selectedTaskType();
     const target_value = parseInt(document.getElementById("new-task-target").value);
-    const assigned_to = document.getElementById("new-task-assigned").value || null;
-
-    if (!title) {
-        alert("Por favor escribe un título para la misión.");
-        return;
-    }
-
+    const assigned_to  = document.getElementById("new-task-assigned").value || null;
+    if (!title) { alert("Por favor escribe un título para la misión."); return; }
     await fetch(`${API_URL}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             group_id: currentGroup.id,
-            title,
-            description,
-            points,
-            task_type,
-            target_value,
-            assigned_to,
-            created_by: userId
+            title, description, points, task_type,
+            target_value, assigned_to, created_by: userId
         })
     });
-
     closeModal("modal-create-task");
     loadGroupTasks(currentGroup.id);
 }
@@ -867,5 +822,6 @@ loadFriends();
 loadGroups();
 </script>
 
+<script src="../js/navbar.js"></script>
 </body>
 </html>
