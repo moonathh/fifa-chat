@@ -218,6 +218,61 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
     });
 
+    /* ── EDITAR DATOS ── */
+    const editBtn    = document.getElementById("editBtn");
+    const confirmBtn = document.getElementById("confirmBtn");
+    const confirmRow = document.getElementById("confirm-row");
+    const editMsg    = document.getElementById("edit-msg");
+    let editing = false;
+
+    editBtn.addEventListener("click", () => {
+        editing = !editing;
+        fullName.readOnly = !editing;
+        email.readOnly    = !editing;
+        confirmRow.style.display = editing ? "block" : "none";
+        editBtn.textContent = editing ? "✖ Cancelar" : "✏️ Editar";
+        editMsg.textContent = "";
+        if (editing) fullName.focus();
+    });
+
+    confirmBtn.addEventListener("click", async () => {
+        const newName  = fullName.value.trim();
+        const newEmail = email.value.trim();
+        if (!newName || !newEmail) {
+            editMsg.style.color = "#e74c3c";
+            editMsg.textContent = "Nombre y correo no pueden estar vacíos.";
+            return;
+        }
+        confirmBtn.textContent = "Guardando...";
+        confirmBtn.disabled    = true;
+        try {
+            const res = await fetch(`${API}/users/${userId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ full_name: newName, email: newEmail })
+            });
+            if (!res.ok) throw new Error();
+            // Actualizar navbar
+            navbarUser.textContent = newName;
+            sessionStorage.setItem("userName", newName);
+            // Salir de modo edición
+            fullName.readOnly = true;
+            email.readOnly    = true;
+            confirmRow.style.display = "none";
+            editBtn.textContent = "✏️ Editar";
+            editing = false;
+            editMsg.style.color = "#00a65a";
+            editMsg.textContent = "¡Cambios guardados!";
+            setTimeout(() => { editMsg.textContent = ""; }, 3000);
+        } catch (err) {
+            editMsg.style.color = "#e74c3c";
+            editMsg.textContent = "Error al guardar. Intenta de nuevo.";
+        } finally {
+            confirmBtn.textContent = "✔ Confirmar cambios";
+            confirmBtn.disabled    = false;
+        }
+    });
+
     document.getElementById("logoutBtn").addEventListener("click", () => {
         sessionStorage.clear();
     });
