@@ -59,33 +59,45 @@ document.addEventListener("DOMContentLoaded", async () => {
                    border-radius:50%;object-fit:cover;display:block;">`;
     }
 
-    /* ── RENDER ÍCONO EQUIPADO sobre el avatar ── */
+    /* ── RENDER ÍCONO EQUIPADO como marco alrededor de la foto ── */
     function renderEquippedBadge() {
-        const old = document.getElementById("equipped-badge");
-        if (old) old.remove();
+        // Limpiar marcos de ícono anteriores
+        document.querySelectorAll(".icon-frame-piece").forEach(el => el.remove());
 
         if (!equippedIcon) return;
 
         const iconData = ICON_CATALOG.find(i => i.id === equippedIcon);
         if (!iconData) return;
 
-        const badge = document.createElement("div");
-        badge.id = "equipped-badge";
-        badge.style.cssText = `
-            position:absolute; bottom:-4px; right:-4px;
-            width:42px; height:42px; border-radius:50%;
-            background:#fff; border:3px solid #0f62fe;
-            display:flex; align-items:center; justify-content:center;
-            font-size:22px; box-shadow:0 4px 12px rgba(0,0,0,.2);
-            z-index:10;
-        `;
-        badge.innerHTML = `<img src="${iconData.img}" alt="${iconData.label}"
-            style="width:28px;height:28px;object-fit:contain;">`;
-
-        // El wrap del avatar necesita position:relative
         const wrap = document.getElementById("avatarFrame");
         wrap.style.position = "relative";
-        wrap.appendChild(badge);
+
+        // Tamaño del avatar frame
+        const SIZE    = 150; // px — debe coincidir con .avatar-frame width/height
+        const ICON_SZ = 38;  // tamaño de cada ícono en el marco
+        const COUNT   = 8;   // cuántos íconos rodean la foto
+
+        for (let i = 0; i < COUNT; i++) {
+            const angle = (i / COUNT) * 2 * Math.PI - Math.PI / 2;
+            const radius = (SIZE / 2) + 4; // un poco fuera del borde
+            const x = SIZE / 2 + radius * Math.cos(angle) - ICON_SZ / 2;
+            const y = SIZE / 2 + radius * Math.sin(angle) - ICON_SZ / 2;
+
+            const piece = document.createElement("img");
+            piece.className = "icon-frame-piece";
+            piece.src = iconData.img;
+            piece.alt = iconData.label;
+            piece.style.cssText = `
+                position:absolute;
+                width:${ICON_SZ}px; height:${ICON_SZ}px;
+                left:${x}px; top:${y}px;
+                object-fit:contain;
+                filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));
+                pointer-events:none;
+                z-index:10;
+            `;
+            wrap.appendChild(piece);
+        }
     }
 
     /* ── GUARDAR FOTO + FRAME ── */

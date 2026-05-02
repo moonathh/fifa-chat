@@ -3,8 +3,20 @@
 (async function () {
     const API    = "https://fifa-chat-dr6w.onrender.com";
     const userId = sessionStorage.getItem("user_id");
-
     if (!userId) return;
+
+    const ICON_CATALOG = [
+        { id: "icon1", img: "../imagenes/icon1.png" },
+        { id: "icon2", img: "../imagenes/icon2.png" },
+        { id: "icon3", img: "../imagenes/icon3.png" },
+        { id: "icon4", img: "../imagenes/icon4.png" },
+        { id: "icon5", img: "../imagenes/icon5.png" },
+        { id: "star1", img: "../imagenes/star1.png" },
+        { id: "star2", img: "../imagenes/star2.png" },
+        { id: "star3", img: "../imagenes/star3.png" },
+        { id: "star4", img: "../imagenes/star4.png" },
+        { id: "star5", img: "../imagenes/star5.png" },
+    ];
 
     const avatarEl = document.querySelector(".profile-trigger .avatar, a[href='profile.html'] .avatar");
     const nameEls  = document.querySelectorAll(
@@ -21,10 +33,14 @@
 
         if (!avatarEl) return;
 
-        // Tamaño fijo siempre, tenga foto o no
+        // Contenedor del mini avatar — tamaño fijo siempre
+        const AVATAR_SIZE = 36;
+        const ICON_SIZE   = 14;
+        const COUNT       = 6;
+
         avatarEl.style.cssText = `
-            width:36px; height:36px; border-radius:50%;
-            overflow:hidden; position:relative; flex-shrink:0;
+            width:${AVATAR_SIZE}px; height:${AVATAR_SIZE}px; border-radius:50%;
+            overflow:visible; position:relative; flex-shrink:0;
             display:flex; align-items:center; justify-content:center;
         `;
 
@@ -34,21 +50,43 @@
             const img = document.createElement("img");
             img.src = user.profile_photo;
             img.style.cssText = `
-                position:absolute; top:0; left:0;
-                width:100%; height:100%;
+                width:${AVATAR_SIZE}px; height:${AVATAR_SIZE}px;
                 border-radius:50%; object-fit:cover; display:block;
+                flex-shrink:0;
             `;
             avatarEl.appendChild(img);
         }
 
-        // Marco — se aplica al propio avatarEl con outline, no al <a>
-        if (user.profile_frame) {
-            avatarEl.style.outline       = "2.5px solid transparent";
-            avatarEl.style.boxShadow     = `0 0 0 2.5px transparent`;
-            avatarEl.style.background    = user.profile_frame;
-            // Wrapeamos la imagen para que el marco no tape la foto
-            avatarEl.style.padding       = "2px";
-            avatarEl.style.backgroundClip = "padding-box";
+        // Marco de color
+        if (user.profile_frame && !user.equipped_icon) {
+            avatarEl.style.outline = `2.5px solid transparent`;
+            avatarEl.style.padding = "2px";
+            avatarEl.style.background = user.profile_frame;
+        }
+
+        // Ícono equipado como marco circular mini
+        if (user.equipped_icon) {
+            const iconData = ICON_CATALOG.find(i => i.id === user.equipped_icon);
+            if (iconData) {
+                for (let i = 0; i < COUNT; i++) {
+                    const angle  = (i / COUNT) * 2 * Math.PI - Math.PI / 2;
+                    const radius = (AVATAR_SIZE / 2) + 2;
+                    const x = AVATAR_SIZE / 2 + radius * Math.cos(angle) - ICON_SIZE / 2;
+                    const y = AVATAR_SIZE / 2 + radius * Math.sin(angle) - ICON_SIZE / 2;
+
+                    const piece = document.createElement("img");
+                    piece.src = iconData.img;
+                    piece.style.cssText = `
+                        position:absolute;
+                        width:${ICON_SIZE}px; height:${ICON_SIZE}px;
+                        left:${x}px; top:${y}px;
+                        object-fit:contain;
+                        pointer-events:none;
+                        z-index:10;
+                    `;
+                    avatarEl.appendChild(piece);
+                }
+            }
         }
 
     } catch (err) {
