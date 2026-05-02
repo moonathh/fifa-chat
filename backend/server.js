@@ -417,7 +417,8 @@ app.put("/users/:id/equip-icon", async (req, res) => {
 app.get("/friends/:userId", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT u.id, u.full_name
+            `SELECT u.id, u.full_name, u.profile_photo, u.profile_frame,
+                    u.equipped_icon, COALESCE(u.points, 0) AS points
              FROM users u
              JOIN friends f ON (u.id = f.user1_id OR u.id = f.user2_id)
              WHERE (f.user1_id = $1 OR f.user2_id = $1) AND u.id != $1`,
