@@ -59,10 +59,10 @@ document.addEventListener("DOMContentLoaded", async () => {
                    border-radius:50%;object-fit:cover;display:block;">`;
     }
 
-    /* ── RENDER ÍCONO EQUIPADO como marco alrededor de la foto ── */
+    /* ── RENDER ÍCONO EQUIPADO como marco sobre la foto ── */
     function renderEquippedBadge() {
-        // Limpiar marcos de ícono anteriores
-        document.querySelectorAll(".icon-frame-piece").forEach(el => el.remove());
+        const old = document.getElementById("equipped-frame-img");
+        if (old) old.remove();
 
         if (!equippedIcon) return;
 
@@ -72,32 +72,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         const wrap = document.getElementById("avatarFrame");
         wrap.style.position = "relative";
 
-        // Tamaño del avatar frame
-        const SIZE    = 150; // px — debe coincidir con .avatar-frame width/height
-        const ICON_SZ = 38;  // tamaño de cada ícono en el marco
-        const COUNT   = 8;   // cuántos íconos rodean la foto
-
-        for (let i = 0; i < COUNT; i++) {
-            const angle = (i / COUNT) * 2 * Math.PI - Math.PI / 2;
-            const radius = (SIZE / 2) + 4; // un poco fuera del borde
-            const x = SIZE / 2 + radius * Math.cos(angle) - ICON_SZ / 2;
-            const y = SIZE / 2 + radius * Math.sin(angle) - ICON_SZ / 2;
-
-            const piece = document.createElement("img");
-            piece.className = "icon-frame-piece";
-            piece.src = iconData.img;
-            piece.alt = iconData.label;
-            piece.style.cssText = `
-                position:absolute;
-                width:${ICON_SZ}px; height:${ICON_SZ}px;
-                left:${x}px; top:${y}px;
-                object-fit:contain;
-                filter:drop-shadow(0 2px 4px rgba(0,0,0,.25));
-                pointer-events:none;
-                z-index:10;
-            `;
-            wrap.appendChild(piece);
-        }
+        const frame = document.createElement("img");
+        frame.id  = "equipped-frame-img";
+        frame.src = iconData.img;
+        frame.alt = iconData.label;
+        frame.style.cssText = `
+            position:absolute;
+            top:0; left:0;
+            width:100%; height:100%;
+            object-fit:cover;
+            pointer-events:none;
+            z-index:10;
+            border-radius:50%;
+        `;
+        wrap.appendChild(frame);
     }
 
     /* ── GUARDAR FOTO + FRAME ── */

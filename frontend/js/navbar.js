@@ -33,13 +33,9 @@
 
         if (!avatarEl) return;
 
-        // Contenedor del mini avatar — tamaño fijo siempre
-        const AVATAR_SIZE = 36;
-        const ICON_SIZE   = 14;
-        const COUNT       = 6;
-
+        // Contenedor fijo
         avatarEl.style.cssText = `
-            width:${AVATAR_SIZE}px; height:${AVATAR_SIZE}px; border-radius:50%;
+            width:36px; height:36px; border-radius:50%;
             overflow:visible; position:relative; flex-shrink:0;
             display:flex; align-items:center; justify-content:center;
         `;
@@ -50,42 +46,34 @@
             const img = document.createElement("img");
             img.src = user.profile_photo;
             img.style.cssText = `
-                width:${AVATAR_SIZE}px; height:${AVATAR_SIZE}px;
+                width:36px; height:36px;
                 border-radius:50%; object-fit:cover; display:block;
-                flex-shrink:0;
             `;
             avatarEl.appendChild(img);
         }
 
-        // Marco de color
+        // Marco de color (solo si no hay ícono equipado)
         if (user.profile_frame && !user.equipped_icon) {
-            avatarEl.style.outline = `2.5px solid transparent`;
-            avatarEl.style.padding = "2px";
+            avatarEl.style.padding    = "2px";
             avatarEl.style.background = user.profile_frame;
         }
 
-        // Ícono equipado como marco circular mini
+        // Ícono equipado — overlay a tamaño completo encima de la foto
         if (user.equipped_icon) {
             const iconData = ICON_CATALOG.find(i => i.id === user.equipped_icon);
             if (iconData) {
-                for (let i = 0; i < COUNT; i++) {
-                    const angle  = (i / COUNT) * 2 * Math.PI - Math.PI / 2;
-                    const radius = (AVATAR_SIZE / 2) + 2;
-                    const x = AVATAR_SIZE / 2 + radius * Math.cos(angle) - ICON_SIZE / 2;
-                    const y = AVATAR_SIZE / 2 + radius * Math.sin(angle) - ICON_SIZE / 2;
-
-                    const piece = document.createElement("img");
-                    piece.src = iconData.img;
-                    piece.style.cssText = `
-                        position:absolute;
-                        width:${ICON_SIZE}px; height:${ICON_SIZE}px;
-                        left:${x}px; top:${y}px;
-                        object-fit:contain;
-                        pointer-events:none;
-                        z-index:10;
-                    `;
-                    avatarEl.appendChild(piece);
-                }
+                const frame = document.createElement("img");
+                frame.src = iconData.img;
+                frame.style.cssText = `
+                    position:absolute;
+                    top:0; left:0;
+                    width:100%; height:100%;
+                    object-fit:cover;
+                    pointer-events:none;
+                    z-index:10;
+                    border-radius:50%;
+                `;
+                avatarEl.appendChild(frame);
             }
         }
 
