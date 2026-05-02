@@ -78,12 +78,12 @@ document.addEventListener("DOMContentLoaded", async () => {
         frame.alt = iconData.label;
         frame.style.cssText = `
             position:absolute;
-            top:0; left:0;
-            width:100%; height:100%;
-            object-fit:cover;
+            top:50%; left:50%;
+            transform:translate(-50%, -50%);
+            width:162px; height:162px;
+            object-fit:contain;
             pointer-events:none;
             z-index:10;
-            border-radius:50%;
         `;
         wrap.appendChild(frame);
     }
