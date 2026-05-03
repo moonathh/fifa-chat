@@ -425,28 +425,6 @@
 </div>
 </div>
 
-<!-- EMAIL MODAL -->
-<div class="email-modal-overlay" id="email-modal">
-    <div class="email-modal-box">
-        <div class="email-modal-header">
-            <h3>✉️ Enviar correo</h3>
-            <button class="email-modal-close" onclick="closeEmailModal()">✕</button>
-        </div>
-        <div class="email-modal-body">
-            <label>Para</label>
-            <input id="email-to" type="text" readonly>
-            <label>Asunto</label>
-            <input id="email-subject" type="text" placeholder="Escribe el asunto...">
-            <label>Mensaje</label>
-            <textarea id="email-body" placeholder="Escribe tu mensaje..."></textarea>
-            <button class="email-send-btn" id="email-send-btn" onclick="sendEmail()">
-                📨 Enviar correo
-            </button>
-            <p class="email-msg" id="email-msg"></p>
-        </div>
-    </div>
-</div>
-
 <script>
 const API    = "https://fifa-chat-dr6w.onrender.com";
 const userId = sessionStorage.getItem("user_id");
@@ -531,13 +509,7 @@ async function loadFriends() {
                         : `<span style="color:#aaa;">● Desconectado</span>`}
                     &nbsp;·&nbsp; ⭐ <span>${f.points || 0}</span> pts
                 </div>
-                <div style="display:flex;gap:8px;width:100%;">
-                    <button class="friend-chat-btn" style="flex:1;"
-                        onclick="openChat('${f.full_name}')">💬 Chat</button>
-                    <button class="friend-chat-btn"
-                        style="flex:1;background:linear-gradient(135deg,#1a237e,#283593);"
-                        onclick="openEmailModal(${f.id}, '${f.full_name}')">✉️ Email</button>
-                </div>
+                <button class="friend-chat-btn" onclick="openChat('${f.full_name}')">💬 Enviar mensaje</button>
             `;
 
             container.appendChild(card);
@@ -586,74 +558,6 @@ function openChat(name) {
     sessionStorage.setItem("chatTarget", name);
     window.location.href = "index.html";
 }
-
-/* ── EMAIL ── */
-let emailToId = null;
-
-function openEmailModal(friendId, friendName) {
-    emailToId = friendId;
-    document.getElementById("email-to").value      = friendName;
-    document.getElementById("email-subject").value = "";
-    document.getElementById("email-body").value    = "";
-    document.getElementById("email-msg").textContent = "";
-    document.getElementById("email-msg").className = "email-msg";
-    document.getElementById("email-modal").classList.add("active");
-}
-
-function closeEmailModal() {
-    document.getElementById("email-modal").classList.remove("active");
-    emailToId = null;
-}
-
-async function sendEmail() {
-    const subject = document.getElementById("email-subject").value.trim();
-    const body    = document.getElementById("email-body").value.trim();
-    const msg     = document.getElementById("email-msg");
-    const btn     = document.getElementById("email-send-btn");
-
-    if (!subject || !body) {
-        msg.className   = "email-msg error";
-        msg.textContent = "Completa el asunto y el mensaje.";
-        return;
-    }
-
-    btn.disabled    = true;
-    btn.textContent = "Enviando...";
-    msg.textContent = "";
-
-    try {
-        const res  = await fetch(`${API}/send-email`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                from_user_id: userId,
-                to_user_id:   emailToId,
-                subject,
-                body
-            })
-        });
-        const data = await res.json();
-        if (res.ok) {
-            msg.className   = "email-msg";
-            msg.textContent = "✔ Correo enviado correctamente";
-            setTimeout(closeEmailModal, 2000);
-        } else {
-            msg.className   = "email-msg error";
-            msg.textContent = data.error || "Error al enviar";
-        }
-    } catch (err) {
-        msg.className   = "email-msg error";
-        msg.textContent = "Error de conexión";
-    } finally {
-        btn.disabled    = false;
-        btn.textContent = "📨 Enviar correo";
-    }
-}
-
-// Cerrar modal al click fuera
-document.getElementById("email-modal").addEventListener("click", (e) => {
-    if (e.target === document.getElementById("email-modal")) closeEmailModal();
-});
 
 loadFriends();
 </script>
