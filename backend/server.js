@@ -79,11 +79,28 @@ async function createDefaultTasks(groupId, createdBy) {
 }
 
 /* ======================
+   HELPER: mapear task_type → message_type real en la tabla messages
+   task_type "messages" → message_type "text" en DB
+   task_type "media"    → message_type "media"
+   task_type "location" → message_type "location"
+   task_type "call"     → message_type "call"
+====================== */
+const TASK_TYPE_TO_MSG_TYPE = {
+    messages: "text",
+    media:    "media",
+    location: "location",
+    call:     "call"
+};
+
+/* ======================
    HELPER: actualizar progreso de tareas
    ▸ Cuenta SOLO eventos ocurridos DESPUÉS de que se creó la tarea (created_at)
    ▸ Así cada tarea siempre parte de 0
 ====================== */
-async function updateTaskProgress(chatId, groupId, messageType) {
+async function updateTaskProgress(chatId, groupId, taskType) {
+    // Traducir task_type al message_type real de la tabla messages
+    const dbMsgType = TASK_TYPE_TO_MSG_TYPE[taskType] || taskType;
+
     // Obtener tareas activas del tipo correspondiente
     const tasks = await db.query(
         `SELECT t.id, t.target_value, t.assigned_to, t.created_at,
@@ -93,7 +110,7 @@ async function updateTaskProgress(chatId, groupId, messageType) {
          WHERE t.group_id = $1
            AND t.task_type = $2
            AND t.completed = FALSE`,
-        [groupId, messageType]
+        [groupId, taskType]
     );
 
     for (const task of tasks.rows) {
@@ -107,7 +124,7 @@ async function updateTaskProgress(chatId, groupId, messageType) {
                   AND username = $2
                   AND message_type = $3
                   AND created_at > $4`;
-            countParams = [chatId, task.assigned_name, messageType, task.created_at];
+            countParams = [chatId, task.assigned_name, dbMsgType, task.created_at];
         } else {
             // Cuenta mensajes de cualquier miembro del grupo, desde que se creó la tarea
             countQuery = `
@@ -115,7 +132,7 @@ async function updateTaskProgress(chatId, groupId, messageType) {
                 WHERE chat_id = $1
                   AND message_type = $2
                   AND created_at > $3`;
-            countParams = [chatId, messageType, task.created_at];
+            countParams = [chatId, dbMsgType, task.created_at];
         }
 
         const count = await db.query(countQuery, countParams);

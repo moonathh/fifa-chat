@@ -914,16 +914,21 @@ async function completarTareaManual(taskId, btn) {
 socket.on("new_message", (msg) => {
     if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
     renderMessage(msg);
+    // Recargar panel de tareas tras recibir cualquier mensaje en grupo
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 700);
+        // Pequeño delay para que el servidor termine de actualizar current_value
+        setTimeout(() => loadGroupTasks(currentGroup.id), 800);
     }
 });
 
 socket.on("task_progress", async () => {
-    if (chatType === "group" && currentGroup &&
-        document.getElementById("task-panel").classList.contains("open")) {
-        await loadGroupTasks(currentGroup.id);
+    if (chatType === "group" && currentGroup) {
+        // Recargar siempre que estemos en un grupo, el panel esté abierto o no
+        // (así el botón Reclamar aparece en cuanto se completa la meta)
+        if (document.getElementById("task-panel").classList.contains("open")) {
+            await loadGroupTasks(currentGroup.id);
+        }
     }
 });
 
