@@ -282,6 +282,39 @@ io.on("connection", (socket) => {
         }
     });
 
+    /* ── WEBRTC SIGNALING ── */
+    socket.on("call_invite", (data) => {
+        // data: { to_chat_id, from_name, offer }
+        // Enviar al otro usuario en el mismo chat
+        socket.to(`chat_${data.to_chat_id}`).emit("call_invite", {
+            from_name:  data.from_name,
+            to_chat_id: data.to_chat_id,
+            offer:      data.offer
+        });
+    });
+
+    socket.on("call_answer", (data) => {
+        socket.to(`chat_${data.to_chat_id}`).emit("call_answer", {
+            answer:     data.answer,
+            to_chat_id: data.to_chat_id
+        });
+    });
+
+    socket.on("call_ice", (data) => {
+        socket.to(`chat_${data.to_chat_id}`).emit("call_ice", {
+            candidate:  data.candidate,
+            to_chat_id: data.to_chat_id
+        });
+    });
+
+    socket.on("call_end", (data) => {
+        socket.to(`chat_${data.to_chat_id}`).emit("call_end", {});
+    });
+
+    socket.on("call_reject", (data) => {
+        socket.to(`chat_${data.to_chat_id}`).emit("call_reject", {});
+    });
+
     socket.on("disconnect", async () => {
         console.log("🔴 desconectado");
         if (socket.userId) {

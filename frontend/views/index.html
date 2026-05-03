@@ -434,6 +434,11 @@
                 <button id="tasks-toggle-btn" class="task-panel-toggle" style="display:none" onclick="toggleTaskPanel()">
                     📋 Tareas
                 </button>
+                <button id="videocall-btn" class="task-panel-toggle" style="display:none;"
+                    onclick="iniciarLlamada()"
+                    title="Videollamada">
+                    📹 Llamar
+                </button>
                 <button id="encrypt-toggle-btn" class="task-panel-toggle" style="display:none;"
                     onclick="toggleEncryption()"
                     title="Activar/desactivar cifrado">
@@ -738,8 +743,10 @@ function joinChat(id, type, group = null) {
 
     if (type === "group") {
         document.getElementById("tasks-toggle-btn").style.display = "block";
+        document.getElementById("videocall-btn").style.display    = "none";
     } else {
         document.getElementById("tasks-toggle-btn").style.display = "none";
+        document.getElementById("videocall-btn").style.display    = "block";
         closeTaskPanel();
     }
     document.getElementById("encrypt-toggle-btn").style.display = "block";
@@ -1506,5 +1513,301 @@ loadGroups();
 </script>
 
 <script src="../js/navbar.js"></script>
+
+<!-- ══════════════════════════════════════
+     VIDEOLLAMADA — ventana flotante
+══════════════════════════════════════ -->
+<div id="call-overlay" style="
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.6); z-index:10000;
+    align-items:center; justify-content:center;">
+
+    <!-- Pantalla de llamada entrante -->
+    <div id="call-incoming" style="
+        display:none; background:#fff; border-radius:22px;
+        padding:36px 40px; text-align:center;
+        box-shadow:0 24px 60px rgba(0,0,0,.35); min-width:280px;">
+        <div style="font-size:52px;margin-bottom:12px;">📹</div>
+        <h3 id="incoming-name" style="margin:0 0 6px;color:#0b2341;">Videollamada</h3>
+        <p style="margin:0 0 24px;color:#888;font-size:13px;">Llamada entrante...</p>
+        <div style="display:flex;gap:14px;justify-content:center;">
+            <button onclick="rechazarLlamada()" style="
+                padding:13px 28px; border:none; border-radius:50px;
+                background:#ff4757; color:#fff; font-size:18px;
+                font-weight:800; cursor:pointer;">✕ Rechazar</button>
+            <button onclick="aceptarLlamada()" style="
+                padding:13px 28px; border:none; border-radius:50px;
+                background:#2ed573; color:#fff; font-size:18px;
+                font-weight:800; cursor:pointer;">✓ Aceptar</button>
+        </div>
+    </div>
+
+    <!-- Ventana de videollamada activa -->
+    <div id="call-window" style="
+        display:none; background:#0b2341; border-radius:22px;
+        overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.5);
+        width:min(720px,95vw); position:relative;">
+
+        <!-- Video remoto (fondo) -->
+        <video id="remote-video" autoplay playsinline style="
+            width:100%; display:block; background:#000;
+            min-height:360px; max-height:70vh; object-fit:cover;"></video>
+
+        <!-- Video local (esquina) -->
+        <video id="local-video" autoplay playsinline muted style="
+            position:absolute; bottom:70px; right:14px;
+            width:120px; border-radius:12px;
+            border:2px solid rgba(255,255,255,.4);
+            box-shadow:0 4px 16px rgba(0,0,0,.4);
+            background:#111; object-fit:cover;
+            aspect-ratio:4/3;"></video>
+
+        <!-- Estado de la llamada -->
+        <div id="call-status-bar" style="
+            position:absolute; top:14px; left:50%;
+            transform:translateX(-50%);
+            background:rgba(0,0,0,.5); color:#fff;
+            padding:5px 16px; border-radius:20px;
+            font-size:13px; font-weight:600;
+            backdrop-filter:blur(8px);">
+            📹 Conectando...
+        </div>
+
+        <!-- Controles -->
+        <div style="
+            display:flex; justify-content:center; gap:14px;
+            padding:14px; background:rgba(0,0,0,.6);
+            backdrop-filter:blur(10px);">
+
+            <button id="btn-mic" onclick="toggleMic()" title="Micrófono" style="
+                width:50px;height:50px;border-radius:50%;border:none;
+                background:rgba(255,255,255,.15);color:#fff;
+                font-size:20px;cursor:pointer;transition:.2s;">🎙️</button>
+
+            <button id="btn-cam" onclick="toggleCam()" title="Cámara" style="
+                width:50px;height:50px;border-radius:50%;border:none;
+                background:rgba(255,255,255,.15);color:#fff;
+                font-size:20px;cursor:pointer;transition:.2s;">📷</button>
+
+            <button onclick="colgarLlamada()" title="Colgar" style="
+                width:56px;height:56px;border-radius:50%;border:none;
+                background:#ff4757;color:#fff;
+                font-size:22px;cursor:pointer;
+                box-shadow:0 4px 14px rgba(255,71,87,.5);
+                transition:.2s;">📵</button>
+        </div>
+    </div>
+</div>
+
+<style>
+#call-overlay.active { display:flex !important; }
+#call-incoming.active, #call-window.active { display:block !important; }
+#btn-mic.muted, #btn-cam.off {
+    background: rgba(255,71,87,.5) !important;
+}
+</style>
+
+<script>
+/* ══════════════════════════════════════
+   WEBRTC — VIDEOLLAMADAS
+══════════════════════════════════════ */
+let pc            = null;   // RTCPeerConnection
+let localStream   = null;
+let micEnabled    = true;
+let camEnabled    = true;
+let callChatId    = null;   // chat_id de la llamada activa
+let pendingOffer  = null;   // oferta entrante guardada
+
+const ICE_SERVERS = {
+    iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" }
+    ]
+};
+
+/* ── UI helpers ── */
+function showOverlay(panel) {
+    document.getElementById("call-overlay").classList.add("active");
+    document.getElementById("call-incoming").classList.remove("active");
+    document.getElementById("call-window").classList.remove("active");
+    if (panel) document.getElementById(panel).classList.add("active");
+}
+
+function hideOverlay() {
+    document.getElementById("call-overlay").classList.remove("active");
+    document.getElementById("call-incoming").classList.remove("active");
+    document.getElementById("call-window").classList.remove("active");
+}
+
+function setCallStatus(txt) {
+    document.getElementById("call-status-bar").textContent = txt;
+}
+
+/* ── Obtener cámara y micrófono ── */
+async function getLocalStream() {
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById("local-video").srcObject = localStream;
+    return localStream;
+}
+
+/* ── Crear RTCPeerConnection ── */
+function createPC() {
+    if (pc) { pc.close(); pc = null; }
+    pc = new RTCPeerConnection(ICE_SERVERS);
+
+    pc.onicecandidate = (e) => {
+        if (e.candidate) {
+            socket.emit("call_ice", { to_chat_id: callChatId, candidate: e.candidate });
+        }
+    };
+
+    pc.ontrack = (e) => {
+        document.getElementById("remote-video").srcObject = e.streams[0];
+        setCallStatus("📹 En llamada");
+    };
+
+    pc.onconnectionstatechange = () => {
+        if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+            colgarLlamada();
+        }
+    };
+
+    if (localStream) {
+        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+    }
+    return pc;
+}
+
+/* ── INICIAR LLAMADA (caller) ── */
+async function iniciarLlamada() {
+    if (!chatId || chatType !== "private") return;
+    callChatId = chatId;
+
+    try {
+        await getLocalStream();
+        createPC();
+        showOverlay("call-window");
+        setCallStatus("⏳ Llamando...");
+
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        socket.emit("call_invite", {
+            to_chat_id: callChatId,
+            from_name:  userName,
+            offer
+        });
+    } catch (err) {
+        showToast("No se pudo acceder a la cámara/micrófono", "warning");
+        limpiarLlamada();
+    }
+}
+
+/* ── LLAMADA ENTRANTE ── */
+socket.on("call_invite", async (data) => {
+    if (String(data.to_chat_id).trim() !== String(chatId).trim()) return;
+    pendingOffer = data.offer;
+    document.getElementById("incoming-name").textContent =
+        `📹 ${data.from_name} te llama`;
+    showOverlay("call-incoming");
+});
+
+/* ── ACEPTAR ── */
+async function aceptarLlamada() {
+    if (!pendingOffer) return;
+    callChatId = chatId;
+
+    try {
+        await getLocalStream();
+        createPC();
+        showOverlay("call-window");
+        setCallStatus("⏳ Conectando...");
+
+        await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        socket.emit("call_answer", { to_chat_id: callChatId, answer });
+        pendingOffer = null;
+    } catch (err) {
+        showToast("No se pudo acceder a la cámara/micrófono", "warning");
+        limpiarLlamada();
+    }
+}
+
+/* ── RECHAZAR ── */
+function rechazarLlamada() {
+    socket.emit("call_reject", { to_chat_id: chatId });
+    pendingOffer = null;
+    hideOverlay();
+    showToast("Llamada rechazada", "warning");
+}
+
+/* ── RESPUESTA DEL RECEPTOR (answer) ── */
+socket.on("call_answer", async (data) => {
+    if (!pc) return;
+    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+    setCallStatus("📹 En llamada");
+});
+
+/* ── ICE CANDIDATES ── */
+socket.on("call_ice", async (data) => {
+    if (!pc) return;
+    try { await pc.addIceCandidate(new RTCIceCandidate(data.candidate)); } catch {}
+});
+
+/* ── LLAMADA RECHAZADA ── */
+socket.on("call_reject", () => {
+    showToast("📵 Llamada rechazada", "warning");
+    limpiarLlamada();
+});
+
+/* ── LLAMADA TERMINADA (otro cuelga) ── */
+socket.on("call_end", () => {
+    showToast("📵 La llamada terminó", "default");
+    limpiarLlamada();
+});
+
+/* ── COLGAR ── */
+function colgarLlamada() {
+    if (callChatId) socket.emit("call_end", { to_chat_id: callChatId });
+    limpiarLlamada();
+}
+
+function limpiarLlamada() {
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) {
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+    }
+    document.getElementById("local-video").srcObject  = null;
+    document.getElementById("remote-video").srcObject = null;
+    callChatId   = null;
+    pendingOffer = null;
+    micEnabled   = true;
+    camEnabled   = true;
+    document.getElementById("btn-mic").classList.remove("muted");
+    document.getElementById("btn-cam").classList.remove("off");
+    hideOverlay();
+}
+
+/* ── CONTROLES MIC / CAM ── */
+function toggleMic() {
+    if (!localStream) return;
+    micEnabled = !micEnabled;
+    localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
+    document.getElementById("btn-mic").textContent = micEnabled ? "🎙️" : "🔇";
+    document.getElementById("btn-mic").classList.toggle("muted", !micEnabled);
+}
+
+function toggleCam() {
+    if (!localStream) return;
+    camEnabled = !camEnabled;
+    localStream.getVideoTracks().forEach(t => t.enabled = camEnabled);
+    document.getElementById("btn-cam").textContent = camEnabled ? "📷" : "🚫";
+    document.getElementById("btn-cam").classList.toggle("off", !camEnabled);
+}
+</script>
+
 </body>
 </html>
