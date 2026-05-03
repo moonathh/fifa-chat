@@ -217,42 +217,46 @@
 }
 .task-panel.open{ display:block; }
 
+/* ── TASK CARD ── */
 .task-mini-card{
     background:#fff;
     border:1px solid #eee;
-    border-radius:10px;
-    padding:10px 12px;
-    margin-bottom:8px;
+    border-radius:12px;
+    padding:12px 14px;
+    margin-bottom:10px;
     font-size:12px;
+    transition: box-shadow .2s;
 }
-.task-mini-card.done{ opacity:.55; }
+.task-mini-card:hover{ box-shadow: 0 2px 10px rgba(0,0,0,.07); }
+.task-mini-card.done{ opacity:.6; }
 
 .task-mini-card-header{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
-    margin-bottom:4px;
+    margin-bottom:6px;
 }
 
 .task-mini-card h4{
-    margin:0;
+    margin:0 0 2px;
     font-size:13px;
     color:#0b2341;
 }
 
 .task-type-badge{
     font-size:10px;
-    padding:2px 7px;
+    padding:2px 8px;
     border-radius:20px;
     font-weight:700;
     background:#e0f7fa;
     color:#00838f;
+    white-space:nowrap;
 }
 
 .task-assigned{
     font-size:11px;
     color:#888;
-    margin-bottom:4px;
+    margin-bottom:6px;
 }
 
 .task-progress-label{
@@ -260,10 +264,11 @@
     justify-content:space-between;
     color:#666;
     margin-bottom:4px;
+    font-size:11px;
 }
 
 .progress-wrap{
-    height:6px;
+    height:7px;
     background:#eee;
     border-radius:999px;
     overflow:hidden;
@@ -275,13 +280,65 @@
 }
 .progress-bar.done{ background:#4caf50; }
 
+.task-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:8px;
+}
+
 .task-points{
     font-size:11px;
     color:#888;
-    margin-top:4px;
-    text-align:right;
 }
 
+/* Botón completar manual */
+.btn-complete-task{
+    font-size:11px;
+    padding:4px 10px;
+    border-radius:20px;
+    border:none;
+    background:#00bcd4;
+    color:#fff;
+    font-weight:700;
+    cursor:pointer;
+}
+.btn-complete-task:disabled{
+    background:#ccc;
+    cursor:not-allowed;
+}
+.btn-complete-task.done-badge{
+    background:#4caf50;
+    cursor:default;
+}
+
+/* ── TOAST ── */
+.chat-toast{
+    position:fixed;
+    bottom:80px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:#0b2341;
+    color:#fff;
+    padding:12px 22px;
+    border-radius:14px;
+    font-weight:700;
+    font-size:14px;
+    opacity:0;
+    pointer-events:none;
+    z-index:9998;
+    transition:.3s;
+    max-width:340px;
+    text-align:center;
+}
+.chat-toast.show{
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+}
+.chat-toast.success{ background:#2e7d32; }
+.chat-toast.warning{ background:#e65100; }
+
+/* ── CHAT ── */
 .chat-messages{
     flex:1;
     overflow-y:auto;
@@ -393,7 +450,7 @@
 
         <section class="chat-messages" id="chat-messages-area"></section>
 
-        <!-- Preview multimedia (encima del input bar) -->
+        <!-- Preview multimedia -->
         <div id="media-preview" style="display:none;padding:8px 14px;background:#f0f4ff;
              border-top:1px solid #dde3f0;align-items:center;gap:10px;">
             <span id="media-preview-name" style="font-size:13px;color:#333;flex:1;overflow:hidden;
@@ -421,6 +478,9 @@
     </main>
 </div>
 </div>
+
+<!-- Toast global -->
+<div class="chat-toast" id="chat-toast"></div>
 
 <!-- MODAL: Crear Grupo -->
 <div class="modal-overlay" id="modal-create-group">
@@ -458,6 +518,13 @@
             <span class="emoji-option" data-emoji="⚽">⚽</span>
             <span class="emoji-option" data-emoji="🏆">🏆</span>
         </div>
+        <label>Agregar miembro al grupo</label>
+        <div style="display:flex;gap:8px;margin-top:6px;">
+            <input id="add-member-email" placeholder="Email del amigo" style="flex:1;">
+            <button class="btn-primary" style="flex-shrink:0;padding:10px 14px;font-size:13px;"
+                onclick="agregarMiembroAlGrupo()">➕</button>
+        </div>
+        <small id="add-member-msg" style="color:#888;display:block;margin-top:4px;"></small>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
             <button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
@@ -480,9 +547,17 @@
                 <div class="icon">📸</div>
                 <div class="label">Multimedia</div>
             </div>
+            <div class="task-type-option" data-type="location" onclick="selectTaskType(this)">
+                <div class="icon">📍</div>
+                <div class="label">Ubicaciones</div>
+            </div>
             <div class="task-type-option" data-type="call" onclick="selectTaskType(this)">
                 <div class="icon">📹</div>
                 <div class="label">Llamadas</div>
+            </div>
+            <div class="task-type-option" data-type="friends" onclick="selectTaskType(this)">
+                <div class="icon">🤝</div>
+                <div class="label">Agregar amigos</div>
             </div>
         </div>
 
@@ -538,16 +613,29 @@ let myFriends    = [];
 let chatType     = "private";
 
 const TASK_TYPE_LABELS = {
-    messages: { icon: "💬", label: "Mensajes" },
-    media:    { icon: "📸", label: "Multimedia" },
-    call:     { icon: "📹", label: "Llamadas" }
+    messages: { icon: "💬", label: "Mensajes"       },
+    media:    { icon: "📸", label: "Multimedia"      },
+    location: { icon: "📍", label: "Ubicaciones"     },
+    call:     { icon: "📹", label: "Llamadas"        },
+    friends:  { icon: "🤝", label: "Agregar amigos"  }
 };
 
 const TARGET_LABELS = {
     messages: "Meta (número de mensajes)",
     media:    "Meta (número de fotos/videos)",
-    call:     "Meta (número de llamadas)"
+    location: "Meta (número de ubicaciones)",
+    call:     "Meta (número de llamadas)",
+    friends:  "Meta (número de amigos a agregar)"
 };
+
+/* ── TOAST ── */
+function showToast(msg, type = "default") {
+    const t = document.getElementById("chat-toast");
+    t.textContent = msg;
+    t.className = "chat-toast show" + (type !== "default" ? " " + type : "");
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove("show"), 3200);
+}
 
 /* SIDEBAR */
 function toggleSidebar(e) {
@@ -601,12 +689,10 @@ function joinChat(id, type, group = null) {
         document.getElementById("tasks-toggle-btn").style.display = "none";
         closeTaskPanel();
     }
-    // Mostrar botón de cifrado en cualquier chat
     document.getElementById("encrypt-toggle-btn").style.display = "block";
-    // Reset cifrado al cambiar de chat
     encryptionEnabled = false;
     const encBtn = document.getElementById("encrypt-toggle-btn");
-    encBtn.textContent    = "🔓 Cifrado";
+    encBtn.textContent     = "🔓 Cifrado";
     encBtn.style.background  = "";
     encBtn.style.color       = "";
     encBtn.style.borderColor = "";
@@ -624,7 +710,6 @@ async function loadFriends() {
         div.className = "friend-item";
         div.style.cssText = "display:flex;align-items:center;gap:10px;padding:10px 14px;";
 
-        // Avatar con foto o emoji
         const avatarWrap = document.createElement("div");
         avatarWrap.style.cssText = `
             position:relative; width:36px; height:36px;
@@ -632,15 +717,12 @@ async function loadFriends() {
             background:#e0e7ff; display:flex;
             align-items:center; justify-content:center; font-size:18px;
         `;
-
         if (f.profile_photo) {
             avatarWrap.innerHTML = `<img src="${f.profile_photo}"
                 style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
         } else {
             avatarWrap.textContent = "👤";
         }
-
-        // Dot de estado
         const dot = document.createElement("div");
         dot.style.cssText = `
             position:absolute; bottom:0; right:0;
@@ -650,7 +732,6 @@ async function loadFriends() {
         `;
         avatarWrap.appendChild(dot);
 
-        // Info
         const info = document.createElement("div");
         info.style.cssText = "display:flex;flex-direction:column;gap:1px;overflow:hidden;";
         info.innerHTML = `
@@ -662,14 +743,11 @@ async function loadFriends() {
                 ${f.is_online ? "● En línea" : "● Desconectado"}
             </span>
         `;
-
         div.appendChild(avatarWrap);
         div.appendChild(info);
 
         div.onclick = () => {
             document.getElementById("current-group-name").textContent = f.full_name;
-
-            // Header avatar con foto y dot de estado
             const headerAv = document.getElementById("header-avatar");
             headerAv.style.cssText = `
                 position:relative; width:38px; height:38px;
@@ -683,18 +761,15 @@ async function loadFriends() {
             } else {
                 headerAv.innerHTML = "👤";
             }
-            // Dot estado
             headerAv.innerHTML += `<div style="
                 position:absolute;bottom:0;right:0;
                 width:10px;height:10px;border-radius:50%;
                 background:${f.is_online ? "#2ed573" : "#ccc"};
                 border:2px solid #fff;z-index:5;"></div>`;
-
             document.getElementById("header-status-text").textContent =
                 f.is_online ? "● En línea" : "● Desconectado";
             document.getElementById("header-status-text").style.color =
                 f.is_online ? "#2ed573" : "#aaa";
-
             const a = Math.min(+userId, +f.id);
             const b = Math.max(+userId, +f.id);
             joinChat(`${a}_${b}`, "private");
@@ -746,44 +821,117 @@ function closeTaskPanel() {
 async function loadGroupTasks(groupId) {
     const list = document.getElementById("task-panel-list");
     try {
-        list.innerHTML = "Cargando...";
+        list.innerHTML = "<p style='color:#aaa;font-size:12px;text-align:center;'>Cargando...</p>";
         const res   = await fetch(`${API_URL}/tasks/${groupId}`);
         const tasks = await res.json();
         list.innerHTML = "";
-        if (!tasks.length) { list.innerHTML = "Sin tareas"; return; }
-        tasks.forEach(t => {
-            const current = Number(t.current_value) || 0;
-            const target  = Number(t.target_value)  || 1;
-            const percent = Math.min((current / target) * 100, 100);
-            const div = document.createElement("div");
-            div.className = "task-mini-card";
-            div.innerHTML = `
-                <h4>${t.title}</h4>
-                <p>${current}/${target}</p>
-                <div class="progress-wrap">
-                    <div class="progress-bar" style="width:${percent}%"></div>
-                </div>`;
-            list.appendChild(div);
-        });
+        if (!tasks.length) {
+            list.innerHTML = "<p style='color:#aaa;font-size:12px;text-align:center;'>Sin misiones aún</p>";
+            return;
+        }
+        tasks.forEach(t => renderTaskCard(t, list));
     } catch (err) {
-        list.innerHTML = "Error cargando tareas";
+        list.innerHTML = "<p style='color:#f44;font-size:12px;'>Error cargando misiones</p>";
         console.error(err);
+    }
+}
+
+function renderTaskCard(t, container) {
+    const current = Number(t.current_value) || 0;
+    const target  = Number(t.target_value)  || 1;
+    const percent = Math.min((current / target) * 100, 100);
+    const isDone  = t.completed || current >= target;
+    const typeInfo = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
+
+    const div = document.createElement("div");
+    div.className = "task-mini-card" + (t.completed ? " done" : "");
+    div.dataset.taskId = t.id;
+
+    // Botón de completar
+    let completeBtnHTML = "";
+    if (t.completed) {
+        completeBtnHTML = `<span class="btn-complete-task done-badge">✓ Completada</span>`;
+    } else if (current >= target) {
+        completeBtnHTML = `<button class="btn-complete-task" onclick="completarTareaManual(${t.id}, this)">
+                            ✅ Reclamar
+                           </button>`;
+    } else {
+        completeBtnHTML = `<button class="btn-complete-task" disabled title="Aún no alcanzas la meta">
+                            🔒 ${current}/${target}
+                           </button>`;
+    }
+
+    div.innerHTML = `
+        <div class="task-mini-card-header">
+            <div>
+                <h4>${t.title}</h4>
+                ${t.description ? `<p style="margin:0 0 2px;font-size:11px;color:#888;">${t.description}</p>` : ""}
+            </div>
+            <span class="task-type-badge">${typeInfo.icon} ${typeInfo.label}</span>
+        </div>
+        ${t.assigned_name ? `<div class="task-assigned">👤 Asignado a: ${t.assigned_name}</div>` : ""}
+        <div class="task-progress-label">
+            <span>Progreso</span>
+            <span>${current} / ${target}</span>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-bar${t.completed ? " done" : ""}" style="width:${percent}%"></div>
+        </div>
+        <div class="task-footer">
+            <span class="task-points">⭐ ${t.points} pts</span>
+            ${completeBtnHTML}
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+async function completarTareaManual(taskId, btn) {
+    btn.disabled = true;
+    btn.textContent = "...";
+    try {
+        const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            showToast(data.error || "No se pudo completar", "warning");
+            btn.disabled = false;
+            btn.textContent = "✅ Reclamar";
+            return;
+        }
+        showToast(`🎉 ¡Misión completada! +${data.points} pts para todos`, "success");
+        if (currentGroup) loadGroupTasks(currentGroup.id);
+    } catch (err) {
+        showToast("Error de conexión", "warning");
+        btn.disabled = false;
+        btn.textContent = "✅ Reclamar";
     }
 }
 
 /* SOCKET EVENTS */
 socket.on("new_message", (msg) => {
     if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
-    // El servidor devuelve el mensaje con el flag encrypted
     renderMessage(msg);
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
+        setTimeout(() => loadGroupTasks(currentGroup.id), 700);
     }
 });
 
 socket.on("task_progress", async () => {
-    if (chatType === "group" && currentGroup) await loadGroupTasks(currentGroup.id);
+    if (chatType === "group" && currentGroup &&
+        document.getElementById("task-panel").classList.contains("open")) {
+        await loadGroupTasks(currentGroup.id);
+    }
+});
+
+socket.on("task_completed", (data) => {
+    showToast(`🏆 Misión "${data.title}" completada! +${data.points} pts`, "success");
+    if (chatType === "group" && currentGroup) {
+        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
+    }
 });
 
 /* MESSAGES */
@@ -817,7 +965,6 @@ function renderMessage(msg) {
                 onclick="window.open('${url}','_blank')">`;
         }
     } else if (msg.message_type === "location") {
-        // Extraer URL del mensaje
         const urlMatch = msg.message.match(/https:\/\/[^\s]+/);
         const mapUrl   = urlMatch ? urlMatch[0] : null;
         const coords   = mapUrl ? mapUrl.replace("https://www.google.com/maps?q=", "").split(",") : [];
@@ -840,14 +987,10 @@ function renderMessage(msg) {
                 </a>
             </div>` : `<br>${msg.message}`;
     } else {
-        // Texto plano o descifrar si está cifrado
         if (msg.encrypted) {
-            // Descifrar asincrónicamente
             decryptMsg(msg.message, String(msg.chat_id).trim()).then(plain => {
                 const bubble = div.querySelector(".msg-text");
-                if (bubble) {
-                    bubble.textContent = plain;
-                }
+                if (bubble) bubble.textContent = plain;
             });
             bodyHTML = `<br><span class="msg-text">🔒 Descifrando...</span>`;
         } else {
@@ -874,7 +1017,6 @@ async function enviarMensaje() {
     const message = input.value.trim();
     if (!chatId) return;
 
-    // Si hay archivo multimedia pendiente, subirlo primero
     if (pendingMediaFile) {
         const sendBtn = document.querySelector(".input-bar button:last-child");
         sendBtn.textContent = "⏳";
@@ -890,7 +1032,7 @@ async function enviarMensaje() {
             });
             cancelMedia();
         } catch (err) {
-            alert("Error al subir el archivo. Intenta de nuevo.");
+            showToast("Error al subir el archivo", "warning");
             console.error(err);
         } finally {
             sendBtn.textContent = "Enviar";
@@ -902,8 +1044,8 @@ async function enviarMensaje() {
 
     if (!message) return;
 
-    let finalMessage   = message;
-    let isEncrypted    = false;
+    let finalMessage = message;
+    let isEncrypted  = false;
 
     if (encryptionEnabled) {
         finalMessage = await encryptMsg(message, chatId);
@@ -918,10 +1060,6 @@ async function enviarMensaje() {
         encrypted: isEncrypted
     });
     input.value = "";
-    if (chatType === "group" && currentGroup &&
-        document.getElementById("task-panel").classList.contains("open")) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
-    }
 }
 
 document.getElementById("input-chat-main").addEventListener("keydown", e => {
@@ -951,10 +1089,12 @@ async function crearGrupo() {
 }
 
 /* GROUP EDIT */
-function openEditGroupModal(e, id, name) {
+function openEditGroupModal(e, id, name, emoji) {
     e.stopPropagation();
-    document.getElementById("edit-group-id").value  = id;
+    document.getElementById("edit-group-id").value   = id;
     document.getElementById("edit-group-name").value = name;
+    document.getElementById("add-member-msg").textContent = "";
+    document.getElementById("add-member-email").value = "";
     openModal("modal-edit-group");
 }
 
@@ -969,6 +1109,55 @@ async function guardarEdicionGrupo() {
     });
     closeModal("modal-edit-group");
     loadGroups();
+}
+
+/* ── AGREGAR MIEMBRO AL GRUPO ──
+   Llama al nuevo endpoint POST /groups/:id/members
+   Esto también dispara el progreso de tareas tipo 'friends'
+*/
+async function agregarMiembroAlGrupo() {
+    const email   = document.getElementById("add-member-email").value.trim();
+    const groupId = document.getElementById("edit-group-id").value;
+    const msg     = document.getElementById("add-member-msg");
+
+    if (!email) { msg.textContent = "Escribe un email."; return; }
+    msg.textContent = "Buscando...";
+
+    try {
+        // Primero buscar el usuario por email
+        const searchRes = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
+        if (!searchRes.ok) {
+            msg.textContent = "Usuario no encontrado.";
+            msg.style.color = "#f44";
+            return;
+        }
+        const targetUser = await searchRes.json();
+
+        // Agregarlo al grupo
+        const addRes = await fetch(`${API_URL}/groups/${groupId}/members`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: targetUser.id })
+        });
+
+        if (addRes.ok) {
+            msg.style.color = "#2e7d32";
+            msg.textContent = `✓ ${targetUser.full_name} agregado al grupo`;
+            document.getElementById("add-member-email").value = "";
+            // Notificar progreso al panel de tareas
+            if (currentGroup && currentGroup.id == groupId &&
+                document.getElementById("task-panel").classList.contains("open")) {
+                setTimeout(() => loadGroupTasks(groupId), 600);
+            }
+        } else {
+            const err = await addRes.json();
+            msg.style.color = "#f44";
+            msg.textContent = err.error || "Error al agregar.";
+        }
+    } catch (e) {
+        msg.style.color = "#f44";
+        msg.textContent = "Error de conexión.";
+    }
 }
 
 /* CREATE TASK */
@@ -1004,7 +1193,7 @@ async function crearTarea() {
     const task_type    = selectedTaskType();
     const target_value = parseInt(document.getElementById("new-task-target").value);
     const assigned_to  = document.getElementById("new-task-assigned").value || null;
-    if (!title) { alert("Por favor escribe un título para la misión."); return; }
+    if (!title) { showToast("Escribe un título para la misión", "warning"); return; }
     await fetch(`${API_URL}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1015,6 +1204,7 @@ async function crearTarea() {
         })
     });
     closeModal("modal-create-task");
+    showToast("✅ ¡Misión creada!", "success");
     loadGroupTasks(currentGroup.id);
 }
 
@@ -1062,14 +1252,8 @@ async function uploadToSupabase(file) {
 
 /* ── UBICACIÓN ── */
 async function enviarUbicacion() {
-    if (!chatId) {
-        alert("Abre un chat primero.");
-        return;
-    }
-    if (!navigator.geolocation) {
-        alert("Tu navegador no soporta geolocalización.");
-        return;
-    }
+    if (!chatId) { showToast("Abre un chat primero", "warning"); return; }
+    if (!navigator.geolocation) { showToast("Tu navegador no soporta geolocalización", "warning"); return; }
 
     const btn = document.getElementById("location-btn");
     btn.textContent = "⏳";
@@ -1081,19 +1265,17 @@ async function enviarUbicacion() {
             const lng = pos.coords.longitude.toFixed(6);
             const url = `https://www.google.com/maps?q=${lat},${lng}`;
             const message = `📍 Mi ubicación: ${url}`;
-
             socket.emit("send_message", {
                 chat_id: chatId,
                 username: userName,
                 message,
                 message_type: "location"
             });
-
             btn.textContent = "📍";
             btn.disabled = false;
         },
-        (err) => {
-            alert("No se pudo obtener tu ubicación. Verifica los permisos del navegador.");
+        () => {
+            showToast("No se pudo obtener tu ubicación. Verifica los permisos.", "warning");
             btn.textContent = "📍";
             btn.disabled = false;
         },
@@ -1104,10 +1286,9 @@ async function enviarUbicacion() {
 /* ── CIFRADO AES ── */
 let encryptionEnabled = false;
 
-// Deriva una clave AES a partir del chat_id
 async function getKey(chatId) {
-    const enc     = new TextEncoder();
-    const keyMat  = await crypto.subtle.importKey(
+    const enc    = new TextEncoder();
+    const keyMat = await crypto.subtle.importKey(
         "raw", enc.encode("fifa2026_" + chatId),
         { name: "PBKDF2" }, false, ["deriveKey"]
     );
@@ -1125,7 +1306,6 @@ async function encryptMsg(text, chatId) {
     const enc = new TextEncoder();
     const iv  = crypto.getRandomValues(new Uint8Array(12));
     const ct  = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
-    // Guardar iv + ciphertext en base64
     const combined = new Uint8Array(iv.byteLength + ct.byteLength);
     combined.set(iv, 0);
     combined.set(new Uint8Array(ct), iv.byteLength);
@@ -1149,14 +1329,14 @@ function toggleEncryption() {
     encryptionEnabled = !encryptionEnabled;
     const btn = document.getElementById("encrypt-toggle-btn");
     if (encryptionEnabled) {
-        btn.textContent  = "🔒 Cifrado";
-        btn.style.background = "#e8f5e9";
-        btn.style.color      = "#2e7d32";
+        btn.textContent       = "🔒 Cifrado";
+        btn.style.background  = "#e8f5e9";
+        btn.style.color       = "#2e7d32";
         btn.style.borderColor = "#a5d6a7";
     } else {
-        btn.textContent  = "🔓 Cifrado";
-        btn.style.background = "";
-        btn.style.color      = "";
+        btn.textContent       = "🔓 Cifrado";
+        btn.style.background  = "";
+        btn.style.color       = "";
         btn.style.borderColor = "";
     }
 }
@@ -1169,17 +1349,11 @@ async function setOnline() {
 
 async function setOffline() {
     if (!userId) return;
-    // sendBeacon para que funcione aunque se cierre la pestaña
     navigator.sendBeacon(`${API_URL}/users/${userId}/offline`);
 }
 
-// Marcar online al cargar
 setOnline();
-
-// Marcar offline al cerrar/salir de la página
 window.addEventListener("beforeunload", setOffline);
-
-// Marcar offline al cerrar sesión
 document.addEventListener("click", (e) => {
     if (e.target && e.target.id === "logoutBtn") setOffline();
 });
