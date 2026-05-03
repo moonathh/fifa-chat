@@ -26,9 +26,7 @@ db.query("SELECT NOW()")
     .then(() => console.log("✅ DB conectada"))
     .catch(err => console.error("❌ DB error:", err));
 
-/* ======================
-   TAREAS PREDEFINIDAS
-====================== */
+    //tareas predefinidas
 const DEFAULT_TASKS = [
     {
         title: "Escritores del grupo",
@@ -78,13 +76,6 @@ async function createDefaultTasks(groupId, createdBy) {
     }
 }
 
-/* ======================
-   HELPER: mapear task_type → message_type real en la tabla messages
-   task_type "messages" → message_type "text" en DB
-   task_type "media"    → message_type "media"
-   task_type "location" → message_type "location"
-   task_type "call"     → message_type "call"
-====================== */
 const TASK_TYPE_TO_MSG_TYPE = {
     messages: "text",
     media:    "media",
@@ -92,16 +83,14 @@ const TASK_TYPE_TO_MSG_TYPE = {
     call:     "call"
 };
 
-/* ======================
-   HELPER: actualizar progreso de tareas
-   ▸ Cuenta SOLO eventos ocurridos DESPUÉS de que se creó la tarea (created_at)
-   ▸ Así cada tarea siempre parte de 0
-====================== */
+/* actualizar progreso de tareas
+ - cuenta SOLO eventos ocurridos DESPUÉS de que se creó la tarea 
+ - así cada tarea siempre parte de 0*/
 async function updateTaskProgress(chatId, groupId, taskType) {
-    // Traducir task_type al message_type real de la tabla messages
+ 
     const dbMsgType = TASK_TYPE_TO_MSG_TYPE[taskType] || taskType;
 
-    // Obtener tareas activas del tipo correspondiente
+    // obtener tareas activas del tipo correspondiente
     const tasks = await db.query(
         `SELECT t.id, t.target_value, t.assigned_to, t.created_at,
                 u.full_name AS assigned_name
@@ -117,7 +106,7 @@ async function updateTaskProgress(chatId, groupId, taskType) {
         let countQuery, countParams;
 
         if (task.assigned_to) {
-            // Solo cuenta mensajes del usuario asignado, desde que se creó la tarea
+            // solo cuenta mensajes del usuario asignado, desde que se creó la tarea
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
@@ -126,7 +115,7 @@ async function updateTaskProgress(chatId, groupId, taskType) {
                   AND created_at > $4`;
             countParams = [chatId, task.assigned_name, dbMsgType, task.created_at];
         } else {
-            // Cuenta mensajes de cualquier miembro del grupo, desde que se creó la tarea
+            // cuenta mensajes de cualquier miembro del grupo, desde que se creó la tarea
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
@@ -145,10 +134,9 @@ async function updateTaskProgress(chatId, groupId, taskType) {
     }
 }
 
-/* ======================
-   HELPER: actualizar progreso de tareas tipo 'friends'
-   ▸ Cuenta miembros añadidos al grupo DESPUÉS de que se creó la tarea
-====================== */
+/* actualizar progreso de tareas tipo 'friends'
+ Cuenta miembros añadidos al grupo DESPUÉS de que se creó la tarea
+ */
 async function updateFriendsTaskProgress(groupId) {
     const tasks = await db.query(
         `SELECT id, target_value, created_at
@@ -160,7 +148,7 @@ async function updateFriendsTaskProgress(groupId) {
     );
 
     for (const task of tasks.rows) {
-        // Contar miembros añadidos después de que se creó esta tarea
+        // contar miembros añadidos después de que se creó esta tarea
         const count = await db.query(
             `SELECT COUNT(*)::int AS total
              FROM group_members
@@ -176,10 +164,7 @@ async function updateFriendsTaskProgress(groupId) {
     }
 }
 
-/* ======================
-   HELPER: marcar tareas completadas (SIN dar puntos todavia)
-   Los puntos solo se entregan cuando el usuario los reclama desde task.html
-====================== */
+/* marcar tareas completadas (SIN dar puntos todavia)*/
 async function rewardCompletedTasks(groupId, taskType, chatId) {
     try {
         const completed = await db.query(`
@@ -195,7 +180,7 @@ async function rewardCompletedTasks(groupId, taskType, chatId) {
         `, [groupId, taskType]);
 
         for (const task of completed.rows) {
-            // Solo notificar — puntos se entregan al reclamar desde task.html
+            // solo notificar — puntos se entregan al reclamar desde task.html
             io.to(`chat_${chatId}`).emit("task_completed", {
                 title: task.title,
                 points: task.points
@@ -206,9 +191,7 @@ async function rewardCompletedTasks(groupId, taskType, chatId) {
     }
 }
 
-/* ======================
-   SOCKET CHAT
-====================== */
+/* SOCKET CHAT */
 io.on("connection", (socket) => {
     console.log("🟢 conectado:", socket.id);
 
@@ -220,7 +203,7 @@ io.on("connection", (socket) => {
         socket.leave(`chat_${String(chatId).trim()}`);
     });
 
-    /* ── PRESENCIA ── */
+    /* estatus */
     socket.on("user_online", async (userId) => {
         if (!userId) return;
         socket.userId = userId;
@@ -257,13 +240,13 @@ io.on("connection", (socket) => {
                 encrypted
             });
 
-            // Solo actualizar tareas en chats de grupo
+            // solo actualizar tareas en chats de grupo
             if (chat_id.startsWith("group_")) {
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
-                // Actualizar progreso según el tipo de mensaje
+                // actualizar progreso según el tipo de mensaje
                 if (["text", "media", "location"].includes(message_type)) {
-                    // Mapear message_type al task_type correcto
+                    // mapear message_type al task_type correcto
                     const taskType = message_type === "text" ? "messages" : message_type;
                     await updateTaskProgress(chat_id, groupId, taskType);
                     await rewardCompletedTasks(groupId, taskType, chat_id);
@@ -282,10 +265,9 @@ io.on("connection", (socket) => {
         }
     });
 
-    /* ── WEBRTC SIGNALING ── */
+    /* web rtc*/
     socket.on("call_invite", (data) => {
-        // data: { to_chat_id, from_name, offer }
-        // Enviar al otro usuario en el mismo chat
+        // enviar al otro usuario en el mismo chat
         socket.to(`chat_${data.to_chat_id}`).emit("call_invite", {
             from_name:  data.from_name,
             to_chat_id: data.to_chat_id,
@@ -324,9 +306,7 @@ io.on("connection", (socket) => {
     });
 });
 
-/* ======================
-   REGISTER
-====================== */
+/* registro*/
 app.post("/register", async (req, res) => {
     const { full_name, email, password } = req.body;
     try {
@@ -341,9 +321,7 @@ app.post("/register", async (req, res) => {
     }
 });
 
-/* ======================
-   LOGIN
-====================== */
+/* login */
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -380,9 +358,7 @@ app.post("/login", async (req, res) => {
     }
 });
 
-/* ======================
-   USERS
-====================== */
+/* usuarios*/
 app.get("/users/:id", async (req, res) => {
     try {
         const result = await db.query(
@@ -432,9 +408,7 @@ app.put("/users/:id/photo", async (req, res) => {
     }
 });
 
-/* ======================
-   ICONS
-====================== */
+/* foto de perfil*/
 app.get("/users/:id/icons", async (req, res) => {
     try {
         const result = await db.query(
@@ -504,9 +478,7 @@ app.put("/users/:id/equip-icon", async (req, res) => {
     }
 });
 
-/* ======================
-   PRESENCE
-====================== */
+/* estado de conexión*/
 app.post("/users/:id/online", async (req, res) => {
     try {
         await db.query(`UPDATE users SET is_online = TRUE WHERE id = $1`, [req.params.id]);
@@ -521,9 +493,7 @@ app.post("/users/:id/offline", async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-/* ======================
-   FRIENDS
-====================== */
+/* amikos */
 app.get("/friends/:userId", async (req, res) => {
     try {
         const result = await db.query(
@@ -559,9 +529,7 @@ app.post("/friends", async (req, res) => {
     }
 });
 
-/* ======================
-   MESSAGES
-====================== */
+/* mensajes*/
 app.get("/messages/:chat", async (req, res) => {
     try {
         const chat = String(req.params.chat).trim();
@@ -575,9 +543,7 @@ app.get("/messages/:chat", async (req, res) => {
     }
 });
 
-/* ======================
-   USERS BY EMAIL
-====================== */
+/* email de usuarios */
 app.get("/users/by-email/:email", async (req, res) => {
     try {
         const result = await db.query(
@@ -591,9 +557,7 @@ app.get("/users/by-email/:email", async (req, res) => {
     }
 });
 
-/* ======================
-   GROUPS
-====================== */
+/* grupos*/
 app.get("/groups/:userId", async (req, res) => {
     try {
         const result = await db.query(
@@ -677,12 +641,12 @@ app.put("/groups/:id", async (req, res) => {
     }
 });
 
-/* ── AGREGAR MIEMBRO AL GRUPO ── */
+/* agregar nuevo miebro al grupo */
 app.post("/groups/:groupId/members", async (req, res) => {
     const { user_id } = req.body;
     const groupId = parseInt(req.params.groupId);
     try {
-        // Insertar miembro con timestamp actual
+        // insertar nuevo miembro con timestamp actual
         const result = await db.query(
             `INSERT INTO group_members (group_id, user_id, added_at)
              VALUES ($1, $2, NOW())
@@ -692,10 +656,10 @@ app.post("/groups/:groupId/members", async (req, res) => {
         );
 
         if (result.rowCount > 0) {
-            // Actualizar progreso de tareas tipo 'friends'
+            // actualizar progreso de tareas tipo 'friends'
             await updateFriendsTaskProgress(groupId);
             await rewardCompletedTasks(groupId, "friends", `group_${groupId}`);
-            // Notificar al grupo del progreso
+            // notificar al grupo del progreso
             io.to(`chat_group_${groupId}`).emit("task_progress");
         }
 
@@ -705,9 +669,7 @@ app.post("/groups/:groupId/members", async (req, res) => {
     }
 });
 
-/* ======================
-   TASKS
-====================== */
+/* ventana task */
 app.get("/tasks/:groupId", async (req, res) => {
     try {
         const result = await db.query(
@@ -774,10 +736,7 @@ app.post("/tasks", async (req, res) => {
     }
 });
 
-/* ── RECLAMAR RECOMPENSA (solo desde task.html) ──
-   Marca la tarea como reclamada Y da los puntos a todos los miembros.
-   Solo funciona si: completed=TRUE y claimed=FALSE
-*/
+/* ── RECLAMAR RECOMPENSA (solo desde task.html)*/
 app.patch("/tasks/:taskId/claim", async (req, res) => {
     const { user_id } = req.body;
     try {
@@ -796,14 +755,14 @@ app.patch("/tasks/:taskId/claim", async (req, res) => {
             return res.status(400).json({ error: "Esta recompensa ya fue reclamada" });
         }
 
-        // Marcar como reclamada
+        // marcar como reclamada
         const result = await db.query(
             `UPDATE tasks SET claimed = TRUE, claimed_at = NOW()
              WHERE id = $1 RETURNING *`,
             [req.params.taskId]
         );
 
-        // Dar puntos a todos los miembros del grupo
+        // dar puntos a todos los miembros del grupo
         await db.query(
             `UPDATE users SET points = COALESCE(points, 0) + $1
              WHERE id IN (
@@ -818,8 +777,6 @@ app.patch("/tasks/:taskId/claim", async (req, res) => {
     }
 });
 
-/* ======================
-   SERVER
-====================== */
+/* server */
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log("🚀 running on", PORT));

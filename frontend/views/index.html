@@ -1643,11 +1643,63 @@ function setCallStatus(txt) {
     document.getElementById("call-status-bar").textContent = txt;
 }
 
-/* ── Obtener cámara y micrófono ── */
+/* ── Obtener cámara y micrófono ──
+   Fallback progresivo para móviles:
+   1) video 720p + audio
+   2) video sin resolución fija + audio
+   3) solo audio (si la cámara falla)
+   Muestra el error exacto del navegador para diagnóstico.
+── */
 async function getLocalStream() {
-    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-    document.getElementById("local-video").srcObject = localStream;
-    return localStream;
+    // Verificar que la API existe (algunos navegadores viejos o HTTP puro no la tienen)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Tu navegador no soporta videollamadas. Usa Chrome o Safari actualizado y asegúrate de que la página esté en HTTPS.");
+    }
+
+    const intentos = [
+        // 1. Video HD + audio
+        { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true },
+        // 2. Video sin resolución + audio (más compatible con móviles)
+        { video: { facingMode: "user" }, audio: true },
+        // 3. Cualquier video + audio
+        { video: true, audio: true },
+        // 4. Solo audio como último recurso
+        { video: false, audio: true }
+    ];
+
+    let lastErr = null;
+    for (const constraints of intentos) {
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            const localVid = document.getElementById("local-video");
+            localVid.srcObject = localStream;
+            // En móvil a veces hay que llamar play() manualmente
+            localVid.play().catch(() => {});
+            return localStream;
+        } catch (err) {
+            lastErr = err;
+            console.warn("getUserMedia intento fallido:", constraints, err.name, err.message);
+        }
+    }
+
+    // Todos los intentos fallaron — armar mensaje útil
+    let msg = "No se pudo acceder a la cámara/micrófono.";
+    if (lastErr) {
+        if (lastErr.name === "NotAllowedError" || lastErr.name === "PermissionDeniedError") {
+            msg = "Permiso denegado. Ve a Ajustes > Safari/Chrome > Permisos y activa cámara y micrófono para este sitio.";
+        } else if (lastErr.name === "NotFoundError" || lastErr.name === "DevicesNotFoundError") {
+            msg = "No se encontró cámara o micrófono en este dispositivo.";
+        } else if (lastErr.name === "NotReadableError" || lastErr.name === "TrackStartError") {
+            msg = "La cámara está siendo usada por otra app. Ciérrala e intenta de nuevo.";
+        } else if (lastErr.name === "OverconstrainedError") {
+            msg = "La cámara no cumple los requisitos. Intenta con otro navegador.";
+        } else if (lastErr.name === "TypeError") {
+            msg = "Necesitas HTTPS para usar la cámara. Contacta al administrador.";
+        } else {
+            msg = `Error: ${lastErr.name} — ${lastErr.message}`;
+        }
+    }
+    throw new Error(msg);
 }
 
 /* ── Crear RTCPeerConnection ── */
@@ -1662,12 +1714,17 @@ function createPC() {
     };
 
     pc.ontrack = (e) => {
-        document.getElementById("remote-video").srcObject = e.streams[0];
+        const remoteVid = document.getElementById("remote-video");
+        remoteVid.srcObject = e.streams[0];
+        remoteVid.play().catch(() => {});
         setCallStatus("📹 En llamada");
     };
 
     pc.onconnectionstatechange = () => {
-        if (["disconnected", "failed", "closed"].includes(pc.connectionState)) {
+        const state = pc.connectionState;
+        if (state === "connecting") setCallStatus("⏳ Conectando...");
+        if (state === "connected")  setCallStatus("📹 En llamada");
+        if (["disconnected", "failed", "closed"].includes(state)) {
             colgarLlamada();
         }
     };
@@ -1683,13 +1740,16 @@ async function iniciarLlamada() {
     if (!chatId || chatType !== "private") return;
     callChatId = chatId;
 
+    // Mostrar pantalla de llamada de inmediato para que el usuario sepa que algo pasó
+    showOverlay("call-window");
+    setCallStatus("⏳ Solicitando permisos...");
+
     try {
         await getLocalStream();
         createPC();
-        showOverlay("call-window");
         setCallStatus("⏳ Llamando...");
 
-        const offer = await pc.createOffer();
+        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
         await pc.setLocalDescription(offer);
 
         socket.emit("call_invite", {
@@ -1698,7 +1758,8 @@ async function iniciarLlamada() {
             offer
         });
     } catch (err) {
-        showToast("No se pudo acceder a la cámara/micrófono", "warning");
+        hideOverlay();
+        showToast(err.message || "No se pudo iniciar la llamada", "warning");
         limpiarLlamada();
     }
 }
@@ -1717,10 +1778,12 @@ async function aceptarLlamada() {
     if (!pendingOffer) return;
     callChatId = chatId;
 
+    showOverlay("call-window");
+    setCallStatus("⏳ Solicitando permisos...");
+
     try {
         await getLocalStream();
         createPC();
-        showOverlay("call-window");
         setCallStatus("⏳ Conectando...");
 
         await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
@@ -1730,7 +1793,8 @@ async function aceptarLlamada() {
         socket.emit("call_answer", { to_chat_id: callChatId, answer });
         pendingOffer = null;
     } catch (err) {
-        showToast("No se pudo acceder a la cámara/micrófono", "warning");
+        hideOverlay();
+        showToast(err.message || "No se pudo unir a la llamada", "warning");
         limpiarLlamada();
     }
 }
