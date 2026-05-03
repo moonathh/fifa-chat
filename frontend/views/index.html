@@ -124,6 +124,8 @@
     text-align:center;
 }
 
+.group-photo-preview-wrap:hover #group-photo-overlay { display:flex !important; }
+
 .chat-sidebar{
     width:320px;
     transition:.25s;
@@ -508,26 +510,77 @@
 <!-- MODAL: Editar Grupo -->
 <div class="modal-overlay" id="modal-edit-group">
     <div class="modal-box">
-        <h3>Editar Grupo</h3>
+        <h3>✏️ Editar Grupo</h3>
         <input type="hidden" id="edit-group-id">
-        <label>Nombre</label>
-        <input id="edit-group-name">
+
+        <!-- Foto de portada del grupo -->
+        <label>Foto del grupo</label>
+        <div id="group-photo-preview" style="
+            width:100%; height:140px; border-radius:12px;
+            background:#f0f4ff; border:2px dashed #c5d0e8;
+            display:flex; flex-direction:column;
+            align-items:center; justify-content:center;
+            cursor:pointer; overflow:hidden; position:relative;
+            margin-top:6px; transition:.2s;"
+            onclick="document.getElementById('group-photo-input').click()">
+            <span id="group-photo-placeholder" style="font-size:13px;color:#8899bb;text-align:center;padding:10px;">
+                📷<br>Toca para subir foto de portada
+            </span>
+            <img id="group-photo-img" src="" alt=""
+                style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;">
+            <div id="group-photo-overlay" style="
+                display:none; position:absolute; inset:0;
+                background:rgba(0,0,0,.35); border-radius:10px;
+                align-items:center; justify-content:center;
+                color:#fff; font-size:13px; font-weight:700; cursor:pointer;"
+                onclick="document.getElementById('group-photo-input').click()">
+                📷 Cambiar foto
+            </div>
+        </div>
+        <input type="file" id="group-photo-input" accept="image/*"
+               style="display:none;" onchange="onGroupPhotoSelected(this)">
+        <small id="group-photo-msg" style="color:#888;font-size:11px;display:block;margin-top:4px;"></small>
+
+        <!-- Nombre -->
+        <label>Nombre del grupo</label>
+        <input id="edit-group-name" placeholder="Nombre del grupo">
+
+        <!-- Icono emoji -->
         <label>Icono</label>
         <div class="emoji-picker" id="emoji-picker-edit">
             <span class="emoji-option selected" data-emoji="👥">👥</span>
             <span class="emoji-option" data-emoji="⚽">⚽</span>
             <span class="emoji-option" data-emoji="🏆">🏆</span>
+            <span class="emoji-option" data-emoji="🔥">🔥</span>
+            <span class="emoji-option" data-emoji="🎯">🎯</span>
+            <span class="emoji-option" data-emoji="🌎">🌎</span>
         </div>
-        <label>Agregar miembro al grupo</label>
+
+        <!-- Separador -->
+        <div style="border-top:1px solid #eee;margin:18px 0 0;"></div>
+
+        <!-- Agregar miembro -->
+        <label style="margin-top:16px;">➕ Agregar miembro al grupo</label>
         <div style="display:flex;gap:8px;margin-top:6px;">
             <input id="add-member-email" placeholder="Email del amigo" style="flex:1;">
-            <button class="btn-primary" style="flex-shrink:0;padding:10px 14px;font-size:13px;"
-                onclick="agregarMiembroAlGrupo()">➕</button>
+            <button class="btn-primary" style="flex-shrink:0;padding:10px 14px;font-size:13px;border-radius:8px;"
+                onclick="agregarMiembroAlGrupo()">Agregar</button>
         </div>
-        <small id="add-member-msg" style="color:#888;display:block;margin-top:4px;"></small>
-        <div class="modal-actions">
+        <small id="add-member-msg" style="display:block;margin-top:5px;font-size:12px;"></small>
+
+        <!-- Lista de miembros actuales -->
+        <label style="margin-top:14px;">👥 Miembros actuales</label>
+        <div id="current-members-list" style="
+            max-height:140px; overflow-y:auto;
+            border:1px solid #eee; border-radius:10px;
+            padding:8px; margin-top:6px; background:#fafafa;
+            font-size:13px; color:#444;">
+            <span style="color:#aaa;font-size:12px;">Cargando...</span>
+        </div>
+
+        <div class="modal-actions" style="margin-top:18px;">
             <button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
-            <button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
+            <button class="btn-primary" onclick="guardarEdicionGrupo()">💾 Guardar</button>
         </div>
     </div>
 </div>
@@ -787,18 +840,34 @@ async function loadGroups() {
     groups.forEach(g => {
         const div = document.createElement("div");
         div.className = "friend-item";
+        const avatarHTML = g.group_photo
+            ? `<img src="${g.group_photo}" style="width:32px;height:32px;object-fit:cover;
+                border-radius:50%;flex-shrink:0;border:2px solid #e0e7ff;">`
+            : `<span style="font-size:22px;flex-shrink:0;">${g.image_url}</span>`;
+
         div.innerHTML = `
             <div class="group-item-row">
-                <span>${g.image_url} ${g.name}</span>
-                ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
+                <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
+                    ${avatarHTML}
+                    <span style="font-weight:600;white-space:nowrap;overflow:hidden;
+                                 text-overflow:ellipsis;">${g.name}</span>
+                </div>
+                ${g.created_by == userId ? `<button class="group-edit-btn" style="flex-shrink:0;">✏️</button>` : ""}
             </div>`;
         div.onclick = (e) => {
             if (e.target.classList.contains("group-edit-btn")) {
-                openEditGroupModal(e, g.id, g.name, g.image_url);
+                openEditGroupModal(e, g.id, g.name, g.image_url, g.group_photo);
                 return;
             }
             document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
-            document.getElementById("header-avatar").textContent = g.image_url;
+            // Header avatar: foto de grupo si existe, si no emoji
+            const headerAv = document.getElementById("header-avatar");
+            if (g.group_photo) {
+                headerAv.innerHTML = `<img src="${g.group_photo}"
+                    style="width:38px;height:38px;object-fit:cover;border-radius:50%;">`;
+            } else {
+                headerAv.textContent = g.image_url;
+            }
             document.getElementById("header-status-text").textContent = "● Grupo";
             joinChat(`group_${g.id}`, "group", g);
             loadGroupTasks(g.id);
@@ -1063,25 +1132,105 @@ async function crearGrupo() {
 }
 
 /* GROUP EDIT */
-function openEditGroupModal(e, id, name, emoji) {
+async function openEditGroupModal(e, id, name, emoji, groupPhoto) {
     e.stopPropagation();
-    document.getElementById("edit-group-id").value   = id;
-    document.getElementById("edit-group-name").value = name;
-    document.getElementById("add-member-msg").textContent = "";
+    document.getElementById("edit-group-id").value    = id;
+    document.getElementById("edit-group-name").value  = name;
+    document.getElementById("add-member-msg").textContent  = "";
     document.getElementById("add-member-email").value = "";
+    document.getElementById("group-photo-msg").textContent = "";
+    pendingGroupPhoto = null;
+
+    // Reset emoji picker
+    document.querySelectorAll("#emoji-picker-edit .emoji-option").forEach(o => {
+        o.classList.toggle("selected", o.dataset.emoji === emoji);
+    });
+
+    // Mostrar foto actual si existe
+    const img         = document.getElementById("group-photo-img");
+    const placeholder = document.getElementById("group-photo-placeholder");
+    const overlay     = document.getElementById("group-photo-overlay");
+    if (groupPhoto) {
+        img.src              = groupPhoto;
+        img.style.display    = "block";
+        placeholder.style.display = "none";
+        overlay.style.display     = "flex";
+    } else {
+        img.src              = "";
+        img.style.display    = "none";
+        placeholder.style.display = "flex";
+        overlay.style.display     = "none";
+    }
+
+    // Cargar miembros actuales
+    await loadCurrentMembers(id);
     openModal("modal-edit-group");
+}
+
+async function loadCurrentMembers(groupId) {
+    const list = document.getElementById("current-members-list");
+    list.innerHTML = `<span style="color:#aaa;font-size:12px;">Cargando...</span>`;
+    try {
+        const res     = await fetch(`${API_URL}/groups/${groupId}/members`);
+        const members = await res.json();
+        if (!members.length) {
+            list.innerHTML = `<span style="color:#aaa;font-size:12px;">Sin miembros</span>`;
+            return;
+        }
+        list.innerHTML = members.map(m => `
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 4px;
+                        border-bottom:1px solid #f0f0f0;">
+                <span style="font-size:18px;">👤</span>
+                <span style="font-weight:600;">${m.full_name}</span>
+                ${m.id == userId ? '<span style="font-size:10px;color:#00bcd4;font-weight:700;">TÚ</span>' : ""}
+            </div>`).join("");
+    } catch {
+        list.innerHTML = `<span style="color:#f44;font-size:12px;">Error al cargar</span>`;
+    }
 }
 
 async function guardarEdicionGrupo() {
     const id        = document.getElementById("edit-group-id").value;
     const name      = document.getElementById("edit-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-edit");
+    const saveBtn   = document.querySelector("#modal-edit-group .btn-primary:last-child");
+
+    if (!name) { showToast("Escribe un nombre para el grupo", "warning"); return; }
+
+    saveBtn.disabled    = true;
+    saveBtn.textContent = "⏳ Guardando...";
+
+    let group_photo = document.getElementById("group-photo-img").src || null;
+    // Si hay una foto nueva pendiente de subir, subirla primero
+    if (pendingGroupPhoto) {
+        const photoMsg = document.getElementById("group-photo-msg");
+        photoMsg.textContent = "Subiendo foto...";
+        try {
+            group_photo = await uploadToSupabase(pendingGroupPhoto);
+            photoMsg.textContent = "";
+            pendingGroupPhoto = null;
+        } catch (err) {
+            photoMsg.textContent = "Error al subir la foto";
+            photoMsg.style.color = "#f44";
+            saveBtn.disabled    = false;
+            saveBtn.textContent = "💾 Guardar";
+            return;
+        }
+    }
+
+    // Si la imagen es un blob URL local, no la enviamos (no se subió aún)
+    if (group_photo && group_photo.startsWith("blob:")) group_photo = null;
+
     await fetch(`${API_URL}/groups/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, image_url, user_id: userId })
+        body: JSON.stringify({ name, image_url, user_id: userId, group_photo })
     });
+
     closeModal("modal-edit-group");
+    saveBtn.disabled    = false;
+    saveBtn.textContent = "💾 Guardar";
+    showToast("✅ Grupo actualizado", "success");
     loadGroups();
 }
 
@@ -1186,7 +1335,26 @@ async function crearTarea() {
 const SUPABASE_URL  = "https://ktfojwoghksilundhyuh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Zm9qd29naGtzaWx1bmRoeXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDYyNjAsImV4cCI6MjA5MTg4MjI2MH0.WN4mZ2AoAU148zKAtip-Ixd-cG0WJOM2bDB_DIjMA1E";
 
-let pendingMediaFile = null;
+let pendingMediaFile  = null;
+let pendingGroupPhoto = null;
+
+function onGroupPhotoSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    pendingGroupPhoto = file;
+    const img         = document.getElementById("group-photo-img");
+    const placeholder = document.getElementById("group-photo-placeholder");
+    const overlay     = document.getElementById("group-photo-overlay");
+    const msg         = document.getElementById("group-photo-msg");
+
+    // Preview local
+    img.src              = URL.createObjectURL(file);
+    img.style.display    = "block";
+    placeholder.style.display = "none";
+    overlay.style.display     = "flex";
+    msg.textContent      = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+    msg.style.color      = "#555";
+}
 
 function onMediaSelected(input) {
     const file = input.files[0];

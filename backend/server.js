@@ -543,18 +543,34 @@ app.get("/messages/:chat", async (req, res) => {
 });
 
 /* ======================
+   USERS BY EMAIL
+====================== */
+app.get("/users/by-email/:email", async (req, res) => {
+    try {
+        const result = await db.query(
+            `SELECT id, full_name, email FROM users WHERE email = $1 LIMIT 1`,
+            [decodeURIComponent(req.params.email)]
+        );
+        if (!result.rows.length) return res.status(404).json({ error: "Usuario no encontrado" });
+        res.json(result.rows[0]);
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
    GROUPS
 ====================== */
 app.get("/groups/:userId", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT g.id, g.name, g.image_url, g.created_by,
+            `SELECT g.id, g.name, g.image_url, g.group_photo, g.created_by,
                     COUNT(gm2.user_id) AS member_count
              FROM groups g
              JOIN group_members gm ON gm.group_id = g.id
              LEFT JOIN group_members gm2 ON gm2.group_id = g.id
              WHERE gm.user_id = $1
-             GROUP BY g.id, g.name, g.image_url, g.created_by, g.created_at
+             GROUP BY g.id, g.name, g.image_url, g.group_photo, g.created_by, g.created_at
              ORDER BY g.created_at DESC`,
             [req.params.userId]
         );
@@ -614,12 +630,12 @@ app.post("/groups", async (req, res) => {
 });
 
 app.put("/groups/:id", async (req, res) => {
-    const { name, image_url, user_id } = req.body;
+    const { name, image_url, user_id, group_photo } = req.body;
     try {
         const result = await db.query(
-            `UPDATE groups SET name = $1, image_url = $2
-             WHERE id = $3 AND created_by = $4 RETURNING *`,
-            [name, image_url, req.params.id, user_id]
+            `UPDATE groups SET name = $1, image_url = $2, group_photo = $3
+             WHERE id = $4 AND created_by = $5 RETURNING *`,
+            [name, image_url, group_photo || null, req.params.id, user_id]
         );
         if (!result.rows.length) return res.status(403).json({ error: "No autorizado" });
         res.json(result.rows[0]);
