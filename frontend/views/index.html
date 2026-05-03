@@ -292,24 +292,24 @@
     color:#888;
 }
 
-/* Botón completar manual */
-.btn-complete-task{
-    font-size:11px;
-    padding:4px 10px;
+/* Status badges del panel de chat (sin botón de reclamar) */
+.task-status-badge{
+    font-size:10px;
+    padding:3px 8px;
     border-radius:20px;
-    border:none;
-    background:#00bcd4;
-    color:#fff;
     font-weight:700;
-    cursor:pointer;
 }
-.btn-complete-task:disabled{
-    background:#ccc;
-    cursor:not-allowed;
+.task-status-badge.completed{
+    background:#fff8e1;
+    color:#f57f17;
 }
-.btn-complete-task.done-badge{
-    background:#4caf50;
-    cursor:default;
+.task-status-badge.ready{
+    background:#e8f5e9;
+    color:#2e7d32;
+}
+.task-status-badge.claimed{
+    background:#e0f7fa;
+    color:#00838f;
 }
 
 /* ── TOAST ── */
@@ -837,28 +837,22 @@ async function loadGroupTasks(groupId) {
 }
 
 function renderTaskCard(t, container) {
-    const current = Number(t.current_value) || 0;
-    const target  = Number(t.target_value)  || 1;
-    const percent = Math.min((current / target) * 100, 100);
-    const isDone  = t.completed || current >= target;
+    const current  = Number(t.current_value) || 0;
+    const target   = Number(t.target_value)  || 1;
+    const percent  = Math.min((current / target) * 100, 100);
     const typeInfo = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
 
     const div = document.createElement("div");
     div.className = "task-mini-card" + (t.completed ? " done" : "");
-    div.dataset.taskId = t.id;
 
-    // Botón de completar
-    let completeBtnHTML = "";
-    if (t.completed) {
-        completeBtnHTML = `<span class="btn-complete-task done-badge">✓ Completada</span>`;
+    // Estado visual — sin botón de reclamar (eso es solo en task.html)
+    let statusHTML = "";
+    if (t.claimed) {
+        statusHTML = `<span class="task-status-badge claimed">✓ Reclamada</span>`;
+    } else if (t.completed) {
+        statusHTML = `<span class="task-status-badge completed">🎉 ¡Completada! — Ve a Tareas para reclamar</span>`;
     } else if (current >= target) {
-        completeBtnHTML = `<button class="btn-complete-task" onclick="completarTareaManual(${t.id}, this)">
-                            ✅ Reclamar
-                           </button>`;
-    } else {
-        completeBtnHTML = `<button class="btn-complete-task" disabled title="Aún no alcanzas la meta">
-                            🔒 ${current}/${target}
-                           </button>`;
+        statusHTML = `<span class="task-status-badge ready">✅ Lista para reclamar en Tareas</span>`;
     }
 
     div.innerHTML = `
@@ -879,35 +873,10 @@ function renderTaskCard(t, container) {
         </div>
         <div class="task-footer">
             <span class="task-points">⭐ ${t.points} pts</span>
-            ${completeBtnHTML}
+            ${statusHTML}
         </div>
     `;
     container.appendChild(div);
-}
-
-async function completarTareaManual(taskId, btn) {
-    btn.disabled = true;
-    btn.textContent = "...";
-    try {
-        const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: userId })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-            showToast(data.error || "No se pudo completar", "warning");
-            btn.disabled = false;
-            btn.textContent = "✅ Reclamar";
-            return;
-        }
-        showToast(`🎉 ¡Misión completada! +${data.points} pts para todos`, "success");
-        if (currentGroup) loadGroupTasks(currentGroup.id);
-    } catch (err) {
-        showToast("Error de conexión", "warning");
-        btn.disabled = false;
-        btn.textContent = "✅ Reclamar";
-    }
 }
 
 /* SOCKET EVENTS */

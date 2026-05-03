@@ -1,205 +1,387 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tareas de Grupo | FIFA 2026</title>
-    <link rel="stylesheet" href="../css/styles.css">
-    <style>
-        .task-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            padding: 20px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tareas de Grupo | FIFA 2026 Support</title>
+<link rel="stylesheet" href="../css/styles.css">
+<style>
 
-        /* ── Filtros ── */
-        .filter-bar {
-            display: flex;
-            gap: 10px;
-            padding: 0 20px 4px;
-            flex-wrap: wrap;
-        }
-        .filter-btn {
-            padding: 6px 16px;
-            border-radius: 20px;
-            border: 2px solid #ddd;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 13px;
-            color: #555;
-            transition: .2s;
-        }
-        .filter-btn.active {
-            border-color: var(--fifa-cyan);
-            background: var(--fifa-cyan);
-            color: #fff;
-        }
+/* ── PAGE LAYOUT ── */
+.tasks-main {
+    background: var(--bg-light, #f4f6fb);
+    overflow-y: auto;
+    padding: 24px;
+    flex: 1;
+}
 
-        /* ── Tarjeta ── */
-        .task-card {
-            background: white;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,.07);
-            border-left: 5px solid var(--fifa-cyan);
-            transition: transform .2s;
-            position: relative;
-        }
-        .task-card:hover { transform: translateY(-4px); }
-        .task-card.done  { border-left-color: #2ecc71; opacity: .7; }
+/* ── HEADER CARD ── */
+.tasks-header-card {
+    background: linear-gradient(135deg, #001f3f 0%, #004080 100%);
+    border-radius: 20px;
+    padding: 28px 36px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    box-shadow: 0 8px 32px rgba(0,31,63,.18);
+}
 
-        .task-tag {
-            background: #f1f5f9;
-            color: var(--fifa-navy);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: .4px;
-        }
+.tasks-header-card h2 {
+    margin: 0 0 4px;
+    font-size: 22px;
+}
 
-        .task-points {
-            color: var(--fifa-cyan);
-            font-weight: 700;
-            font-size: 14px;
-        }
+.tasks-header-card p {
+    margin: 0;
+    opacity: .7;
+    font-size: 13px;
+}
 
-        .task-meta {
-            font-size: 12px;
-            color: #888;
-            margin: 6px 0 16px;
-        }
+.header-pts {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(0,188,212,.5);
+    border-radius: 14px;
+    padding: 10px 22px;
+    text-align: center;
+}
 
-        .task-status-badge {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        .badge-pending  { background: #fff3e0; color: #e65100; }
-        .badge-done     { background: #e8f5e9; color: #2e7d32; }
+.header-pts .val {
+    font-size: 26px;
+    font-weight: 800;
+    color: #00bcd4;
+    display: block;
+}
 
-        .btn-complete {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            background: var(--fifa-navy);
-            color: white;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 700;
-            transition: .2s;
-            margin-top: 10px;
-        }
-        .btn-complete:hover { background: var(--fifa-cyan); }
+.header-pts .lbl {
+    font-size: 11px;
+    opacity: .7;
+    text-transform: uppercase;
+    letter-spacing: .6px;
+}
 
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #94a3b8;
-            grid-column: 1/-1;
-        }
+/* ── FILTER TABS ── */
+.filter-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
 
-        /* ── Stats bar ── */
-        .stats-bar {
-            display: flex;
-            gap: 16px;
-            padding: 16px 20px;
-            flex-wrap: wrap;
-        }
-        .stat-chip {
-            background: white;
-            border-radius: 10px;
-            padding: 10px 18px;
-            box-shadow: 0 2px 6px rgba(0,0,0,.06);
-            text-align: center;
-            min-width: 90px;
-        }
-        .stat-chip .stat-value { font-size: 22px; font-weight: 800; color: var(--fifa-navy); }
-        .stat-chip .stat-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .4px; }
+.filter-tab {
+    padding: 7px 18px;
+    border-radius: 20px;
+    border: 2px solid #e0e0e0;
+    background: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #555;
+    transition: .2s;
+}
 
-        .content-header {
-            padding: 20px 20px 8px;
-            border-bottom: 1px solid #eee;
-        }
-        .content-area { flex: 1; overflow-y: auto; }
-    </style>
- 
+.filter-tab:hover { border-color: #00bcd4; color: #00838f; }
+
+.filter-tab.active {
+    background: #00bcd4;
+    border-color: #00bcd4;
+    color: #fff;
+}
+
+/* ── GROUP SECTION ── */
+.group-section {
+    margin-bottom: 32px;
+}
+
+.group-section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0b2341;
+    margin: 0 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── TASK CARD ── */
+.task-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 18px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+    border: 2px solid transparent;
+    transition: box-shadow .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
+}
+
+.task-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,.1);
+}
+
+.task-card.completed {
+    border-color: #b2dfdb;
+    background: #f9fffe;
+}
+
+.task-card.claimable {
+    border-color: #00bcd4;
+    animation: pulse-border .2s ease;
+}
+
+.task-card.claimed {
+    border-color: #c8e6c9;
+    background: #f1f8e9;
+    opacity: .75;
+}
+
+/* Franja lateral de color por estado */
+.task-card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    border-radius: 16px 0 0 16px;
+    background: #e0e0e0;
+}
+.task-card.in-progress::before { background: #00bcd4; }
+.task-card.claimable::before   { background: #ff9800; }
+.task-card.completed::before   { background: #26a69a; }
+.task-card.claimed::before     { background: #66bb6a; }
+
+.task-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.task-card-info h3 {
+    margin: 0 0 3px;
+    font-size: 15px;
+    color: #0b2341;
+}
+
+.task-card-info p {
+    margin: 0;
+    font-size: 12px;
+    color: #888;
+}
+
+.task-meta {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+}
+
+.task-type-chip {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-weight: 700;
+    background: #e0f7fa;
+    color: #00838f;
+}
+
+.task-group-chip {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    font-weight: 700;
+    background: #ede7f6;
+    color: #512da8;
+}
+
+.task-assigned-chip {
+    font-size: 11px;
+    padding: 2px 9px;
+    border-radius: 20px;
+    background: #fff3e0;
+    color: #e65100;
+}
+
+/* Progress */
+.task-progress-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.progress-wrap {
+    height: 8px;
+    background: #eee;
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: #00bcd4;
+    border-radius: 999px;
+    transition: width .5s ease;
+}
+
+.progress-bar.done { background: #26a69a; }
+
+/* Footer */
+.task-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.task-pts-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0b2341;
+}
+
+.task-pts-badge span {
+    color: #00bcd4;
+}
+
+/* Botones de acción */
+.btn-claim {
+    padding: 9px 22px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #ff9800, #ff6d00);
+    color: #fff;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    transition: .2s;
+    box-shadow: 0 3px 10px rgba(255,152,0,.35);
+}
+
+.btn-claim:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 14px rgba(255,152,0,.45);
+}
+
+.btn-claim:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.status-chip {
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 700;
+}
+
+.status-chip.in-progress { background: #e3f2fd; color: #1565c0; }
+.status-chip.claimable   { background: #fff3e0; color: #e65100; }
+.status-chip.completed   { background: #e0f2f1; color: #00695c; }
+.status-chip.claimed     { background: #e8f5e9; color: #2e7d32; }
+
+/* ── EMPTY STATE ── */
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #aaa;
+}
+
+.empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+.empty-state p { font-size: 14px; margin: 0; }
+
+/* ── TOAST ── */
+.task-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #111;
+    color: #fff;
+    padding: 13px 26px;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 9999;
+    transition: .3s;
+    max-width: 360px;
+    text-align: center;
+}
+
+.task-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.task-toast.success { background: #1b5e20; }
+.task-toast.error   { background: #b71c1c; }
+
+</style>
 </head>
+
 <body>
 <div class="app-layout">
 
     <nav class="navbar-top">
-        <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
+        <div class="logo-area">🏆 FIFA 2026™ Support Chat</div>
         <div class="user-profile">
-            <span id="user-name">Cargando...</span>
-            <a href="profile.html" class="profile-trigger"><div class="avatar">👤</div></a>
+            <span id="userHeaderName">Cargando...</span>
+            <a href="profile.html"><div class="avatar" id="miniAvatar">👤</div></a>
         </div>
     </nav>
 
     <div class="main-container">
 
-        <!-- SIDEBAR -->
         <aside class="sidebar-nav">
             <div class="nav-section">
                 <p class="nav-section-title">Comunicación</p>
-                <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
-                <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+                <a href="index.html" class="nav-item">💬 Chats</a>
+                <a href="social.html" class="nav-item">👥 Social</a>
             </div>
             <div class="nav-section">
-                <p class="nav-section-title">Comunidad Local</p>
-                <a href="help-mty.html" class="nav-item"><span>🤠</span> Ayuda MTY</a>
+                <p class="nav-section-title">Comunidad</p>
+                <a href="help-mty.html" class="nav-item">🤠 Ayuda MTY</a>
             </div>
             <div class="nav-section">
-                <p class="nav-section-title">Logística</p>
-                <a href="task.html" class="nav-item active"><span>📋</span> Tareas de Grupo</a>
-                <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+                <p class="nav-section-title">Extras</p>
+                <a href="task.html" class="nav-item active">📋 Tareas</a>
+                <a href="rewards.html" class="nav-item">🎁 Tienda</a>
             </div>
         </aside>
 
-        <!-- CONTENT -->
-        <main class="content-area">
+        <main class="tasks-main">
 
-            <div class="content-header">
-                <h2 style="color:var(--fifa-navy);margin:0;">📋 Misiones de Grupo</h2>
-                <p style="color:#64748b;font-size:14px;margin:4px 0 0;">Completa tareas asignadas en tus grupos para ganar puntos.</p>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-bar">
-                <div class="stat-chip">
-                    <div class="stat-value" id="stat-total">—</div>
-                    <div class="stat-label">Total</div>
+            <!-- Header -->
+            <div class="tasks-header-card">
+                <div>
+                    <h2>📋 Tareas de Grupo</h2>
+                    <p>Completa misiones con tu equipo y gana puntos para la tienda</p>
                 </div>
-                <div class="stat-chip">
-                    <div class="stat-value" id="stat-pending" style="color:#e65100;">—</div>
-                    <div class="stat-label">Pendientes</div>
-                </div>
-                <div class="stat-chip">
-                    <div class="stat-value" id="stat-done" style="color:#2e7d32;">—</div>
-                    <div class="stat-label">Completadas</div>
-                </div>
-                <div class="stat-chip">
-                    <div class="stat-value" id="stat-pts" style="color:var(--fifa-cyan);">—</div>
-                    <div class="stat-label">Pts ganados</div>
+                <div class="header-pts">
+                    <span class="val" id="user-pts">0</span>
+                    <span class="lbl">🪙 Puntos</span>
                 </div>
             </div>
 
             <!-- Filtros -->
-            <div class="filter-bar">
-                <button class="filter-btn active" data-filter="all"      onclick="setFilter(this, 'all')">Todas</button>
-                <button class="filter-btn"         data-filter="pending"  onclick="setFilter(this, 'pending')">⏳ Pendientes</button>
-                <button class="filter-btn"         data-filter="done"     onclick="setFilter(this, 'done')">✅ Completadas</button>
-                <button class="filter-btn"         data-filter="mine"     onclick="setFilter(this, 'mine')">👤 Asignadas a mí</button>
+            <div class="filter-tabs">
+                <button class="filter-tab active" data-filter="all"      onclick="setFilter('all',this)">📋 Todas</button>
+                <button class="filter-tab"         data-filter="pending"  onclick="setFilter('pending',this)">⏳ En progreso</button>
+                <button class="filter-tab"         data-filter="claimable" onclick="setFilter('claimable',this)">🎁 Por reclamar</button>
+                <button class="filter-tab"         data-filter="claimed"  onclick="setFilter('claimed',this)">✅ Reclamadas</button>
             </div>
 
-            <div id="tasks-container" class="task-grid">
+            <!-- Lista de tareas -->
+            <div id="tasks-container">
                 <div class="empty-state">
-                    <span style="font-size:36px">⏳</span>
+                    <div class="icon">⏳</div>
                     <p>Cargando tareas...</p>
                 </div>
             </div>
@@ -208,136 +390,229 @@
     </div>
 </div>
 
-<script>
-const API_URL = "https://fifa-chat-dr6w.onrender.com";
-const userId  = sessionStorage.getItem("user_id");
-const userName= sessionStorage.getItem("userName") || "Usuario";
+<div class="task-toast" id="task-toast"></div>
 
-if (!userId) window.location.href = "login.html";
-document.getElementById("user-name").textContent = userName;
+<script>
+const API_URL  = "https://fifa-chat-dr6w.onrender.com";
+const userId   = sessionStorage.getItem("user_id")  || localStorage.getItem("user_id");
+const userName = sessionStorage.getItem("userName") || localStorage.getItem("userName");
+
+if (!userId) location.href = "login.html";
+
+document.getElementById("userHeaderName").textContent = userName || "Usuario";
+
+const TASK_TYPE_LABELS = {
+    messages: { icon: "💬", label: "Mensajes"      },
+    media:    { icon: "📸", label: "Multimedia"    },
+    location: { icon: "📍", label: "Ubicaciones"   },
+    call:     { icon: "📹", label: "Llamadas"      },
+    friends:  { icon: "🤝", label: "Agregar amigos"}
+};
 
 let allTasks   = [];
+let userPoints = 0;
 let activeFilter = "all";
 
-/* ══════════════════════════════════════════
-   CARGAR TAREAS (todas las de los grupos del usuario)
-══════════════════════════════════════════ */
-async function cargarTareas() {
-    try {
-        const res = await fetch(`${API_URL}/tasks/user/${userId}`);
-        if (!res.ok) throw new Error("Error API");
-        allTasks = await res.json();
-
-        actualizarStats();
-        renderTareas(allTasks);
-
-    } catch (err) {
-        console.error(err);
-        document.getElementById("tasks-container").innerHTML = `
-            <div class="empty-state">
-                <span style="font-size:36px">⚠️</span>
-                <p>Error cargando tareas. Verifica tu conexión.</p>
-            </div>`;
-    }
+/* ── TOAST ── */
+function showToast(msg, type = "") {
+    const t = document.getElementById("task-toast");
+    t.textContent = msg;
+    t.className = "task-toast show" + (type ? " " + type : "");
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove("show"), 3400);
 }
 
-/* ══════════════════════════════════════════
-   ESTADÍSTICAS
-══════════════════════════════════════════ */
-function actualizarStats() {
-    const pending = allTasks.filter(t => !t.completed);
-    const done    = allTasks.filter(t =>  t.completed);
-    const ptsGanados = done.reduce((acc, t) => acc + (t.points || 0), 0);
-
-    document.getElementById("stat-total").textContent   = allTasks.length;
-    document.getElementById("stat-pending").textContent = pending.length;
-    document.getElementById("stat-done").textContent    = done.length;
-    document.getElementById("stat-pts").textContent     = ptsGanados;
-}
-
-/* ══════════════════════════════════════════
-   FILTRO
-══════════════════════════════════════════ */
-function setFilter(btn, filter) {
-    document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
-    btn.classList.add("active");
+/* ── FILTER ── */
+function setFilter(filter, btn) {
     activeFilter = filter;
+    document.querySelectorAll(".filter-tab").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderTasks();
+}
+
+function getTaskState(t) {
+    const current = Number(t.current_value) || 0;
+    const target  = Number(t.target_value)  || 1;
+    if (t.claimed)                   return "claimed";
+    if (t.completed)                 return "claimable"; // completed but not claimed
+    if (current >= target)           return "claimable"; // reached goal, auto-complete will fire
+    return "in-progress";
+}
+
+/* ── RENDER ── */
+function renderTasks() {
+    const container = document.getElementById("tasks-container");
+    container.innerHTML = "";
 
     let filtered = allTasks;
-    if (filter === "pending") filtered = allTasks.filter(t => !t.completed);
-    if (filter === "done")    filtered = allTasks.filter(t =>  t.completed);
-    if (filter === "mine")    filtered = allTasks.filter(t => String(t.assigned_to) === String(userId));
+    if (activeFilter === "pending")   filtered = allTasks.filter(t => getTaskState(t) === "in-progress");
+    if (activeFilter === "claimable") filtered = allTasks.filter(t => getTaskState(t) === "claimable");
+    if (activeFilter === "claimed")   filtered = allTasks.filter(t => getTaskState(t) === "claimed");
 
-    renderTareas(filtered);
-}
-
-/* ══════════════════════════════════════════
-   RENDER
-══════════════════════════════════════════ */
-function renderTareas(tasks) {
-    const container = document.getElementById("tasks-container");
-
-    if (!tasks.length) {
+    if (!filtered.length) {
         container.innerHTML = `
             <div class="empty-state">
-                <span style="font-size:40px">📋</span>
-                <p>No hay tareas en esta categoría.<br>
-                   Ve a un chat grupal y crea una misión.</p>
-                <a href="index.html" style="color:var(--fifa-cyan);font-weight:bold;">Ir a Chats →</a>
+                <div class="icon">🏁</div>
+                <p>No hay tareas en esta categoría</p>
             </div>`;
         return;
     }
 
-    container.innerHTML = tasks.map(t => `
-        <div class="task-card ${t.completed ? 'done' : ''}">
-            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">
-                <span class="task-tag">${t.group_name || "Grupo"}</span>
-                <span class="task-points">+${t.points} pts</span>
-            </div>
-            <h3 style="margin:0 0 4px;color:var(--fifa-navy);">${t.title}</h3>
-            <p class="task-meta">
-                ${t.description ? t.description + " &nbsp;·&nbsp; " : ""}
-                ${t.assigned_name ? "👤 " + t.assigned_name + " &nbsp;·&nbsp; " : ""}
-                <span class="task-status-badge ${t.completed ? 'badge-done' : 'badge-pending'}">
-                    ${t.completed ? "✅ Completada" : "⏳ Pendiente"}
-                </span>
-            </p>
-            ${!t.completed
-                ? `<button class="btn-complete" onclick="completarTarea(${t.id}, ${t.points})">Marcar como completada</button>`
-                : ""}
-        </div>
-    `).join("");
+    // Agrupar por grupo
+    const byGroup = {};
+    filtered.forEach(t => {
+        const key = t.group_name || "Sin grupo";
+        if (!byGroup[key]) byGroup[key] = [];
+        byGroup[key].push(t);
+    });
+
+    for (const [groupName, tasks] of Object.entries(byGroup)) {
+        const section = document.createElement("div");
+        section.className = "group-section";
+        section.innerHTML = `<div class="group-section-title">👥 ${groupName}</div>`;
+
+        tasks.forEach(t => {
+            const card = buildTaskCard(t);
+            section.appendChild(card);
+        });
+
+        container.appendChild(section);
+    }
 }
 
-/* ══════════════════════════════════════════
-   COMPLETAR TAREA
-══════════════════════════════════════════ */
-async function completarTarea(taskId, points) {
+function buildTaskCard(t) {
+    const current   = Number(t.current_value) || 0;
+    const target    = Number(t.target_value)  || 1;
+    const percent   = Math.min((current / target) * 100, 100);
+    const state     = getTaskState(t);
+    const typeInfo  = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
+
+    const card = document.createElement("div");
+    card.className = `task-card ${state}`;
+    card.dataset.taskId = t.id;
+
+    /* Estado → chip + botón */
+    let actionHTML = "";
+    let stateChip  = "";
+
+    switch (state) {
+        case "in-progress":
+            stateChip  = `<span class="status-chip in-progress">⏳ En progreso</span>`;
+            actionHTML = "";
+            break;
+        case "claimable":
+            stateChip  = `<span class="status-chip claimable">🎁 ¡Lista para reclamar!</span>`;
+            actionHTML = `<button class="btn-claim" onclick="reclamarRecompensa(${t.id}, this)">
+                            🏆 Reclamar +${t.points} pts
+                          </button>`;
+            break;
+        case "claimed":
+            stateChip  = `<span class="status-chip claimed">✅ Reclamada</span>`;
+            actionHTML = `<span class="status-chip claimed">✓ +${t.points} pts obtenidos</span>`;
+            break;
+    }
+
+    card.innerHTML = `
+        <div class="task-card-top">
+            <div class="task-card-info">
+                <h3>${t.title}</h3>
+                ${t.description ? `<p>${t.description}</p>` : ""}
+                <div class="task-meta">
+                    <span class="task-type-chip">${typeInfo.icon} ${typeInfo.label}</span>
+                    ${t.group_name ? `<span class="task-group-chip">👥 ${t.group_name}</span>` : ""}
+                    ${t.assigned_name ? `<span class="task-assigned-chip">👤 ${t.assigned_name}</span>` : ""}
+                </div>
+            </div>
+            <div style="margin-left:10px;flex-shrink:0;">${stateChip}</div>
+        </div>
+
+        <div class="task-progress-row">
+            <span>Progreso</span>
+            <span>${current} / ${target}</span>
+        </div>
+        <div class="progress-wrap">
+            <div class="progress-bar ${state === 'in-progress' ? '' : 'done'}"
+                 style="width:${percent}%"></div>
+        </div>
+
+        <div class="task-card-footer">
+            <span class="task-pts-badge">⭐ <span>${t.points}</span> puntos</span>
+            ${actionHTML}
+        </div>
+    `;
+
+    return card;
+}
+
+/* ── RECLAMAR ── */
+async function reclamarRecompensa(taskId, btn) {
+    btn.disabled = true;
+    btn.textContent = "⏳ Procesando...";
+
     try {
-        const res = await fetch(`${API_URL}/tasks/${taskId}/complete`, {
+        const res = await fetch(`${API_URL}/tasks/${taskId}/claim`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ user_id: userId })
         });
+        const data = await res.json();
 
-        if (!res.ok) { alert("Error al completar la tarea."); return; }
-
-        alert(`🎉 ¡Misión completada! +${points} puntos añadidos a tu cuenta.`);
-        await cargarTareas();     // recargar desde BD
-        if (activeFilter !== "all") {
-            document.querySelector(`.filter-btn[data-filter="${activeFilter}"]`).click();
+        if (!res.ok) {
+            showToast(data.error || "No se pudo reclamar", "error");
+            btn.disabled = false;
+            btn.textContent = `🏆 Reclamar`;
+            return;
         }
 
+        userPoints += data.points;
+        document.getElementById("user-pts").textContent = userPoints;
+
+        showToast(`🏆 ¡+${data.points} puntos para todos los miembros del grupo!`, "success");
+
+        // Actualizar la tarea en el array local y re-renderizar
+        const idx = allTasks.findIndex(t => t.id === taskId);
+        if (idx !== -1) {
+            allTasks[idx].claimed = true;
+            allTasks[idx].completed = true;
+        }
+        renderTasks();
+
     } catch (err) {
-        alert("Error de conexión.");
+        showToast("Error de conexión", "error");
+        btn.disabled = false;
+        btn.textContent = `🏆 Reclamar`;
     }
 }
 
-/* ══════════════════════════════════════════
-   INIT
-══════════════════════════════════════════ */
-document.addEventListener("DOMContentLoaded", cargarTareas);
+/* ── LOAD ── */
+async function loadUserPoints() {
+    try {
+        const res  = await fetch(`${API_URL}/users/${userId}`);
+        const user = await res.json();
+        userPoints = user.points || 0;
+        document.getElementById("user-pts").textContent = userPoints;
+    } catch (e) {}
+}
+
+async function loadTasks() {
+    try {
+        const res = await fetch(`${API_URL}/tasks/user/${userId}`);
+        allTasks  = await res.json();
+        renderTasks();
+    } catch (e) {
+        document.getElementById("tasks-container").innerHTML = `
+            <div class="empty-state">
+                <div class="icon">⚠️</div>
+                <p>Error al cargar las tareas. Intenta de nuevo.</p>
+            </div>`;
+    }
+}
+
+/* ── INIT ── */
+loadUserPoints();
+loadTasks();
 </script>
-   <script src="../js/navbar.js"></script>
+
+<script src="../js/navbar.js"></script>
 </body>
 </html>

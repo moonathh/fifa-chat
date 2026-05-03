@@ -177,7 +177,8 @@ async function updateFriendsTaskProgress(groupId) {
 }
 
 /* ======================
-   HELPER: completar y recompensar tareas que alcanzaron su meta
+   HELPER: marcar tareas completadas (SIN dar puntos todavia)
+   Los puntos solo se entregan cuando el usuario los reclama desde task.html
 ====================== */
 async function rewardCompletedTasks(groupId, taskType, chatId) {
     try {
@@ -188,20 +189,13 @@ async function rewardCompletedTasks(groupId, taskType, chatId) {
             WHERE group_id = $1
               AND task_type = $2
               AND completed = FALSE
+              AND claimed = FALSE
               AND current_value >= target_value
             RETURNING *
         `, [groupId, taskType]);
 
         for (const task of completed.rows) {
-            // Dar puntos a todos los miembros del grupo
-            await db.query(`
-                UPDATE users
-                SET points = COALESCE(points, 0) + $1
-                WHERE id IN (
-                    SELECT user_id FROM group_members WHERE group_id = $2
-                )
-            `, [task.points, groupId]);
-
+            // Solo notificar — puntos se entregan al reclamar desde task.html
             io.to(`chat_${chatId}`).emit("task_completed", {
                 title: task.title,
                 points: task.points
@@ -731,13 +725,13 @@ app.post("/tasks", async (req, res) => {
     }
 });
 
-/* ── COMPLETAR TAREA MANUALMENTE ──
-   Solo se puede si current_value >= target_value
+/* ── RECLAMAR RECOMPENSA (solo desde task.html) ──
+   Marca la tarea como reclamada Y da los puntos a todos los miembros.
+   Solo funciona si: completed=TRUE y claimed=FALSE
 */
-app.patch("/tasks/:taskId/complete", async (req, res) => {
+app.patch("/tasks/:taskId/claim", async (req, res) => {
     const { user_id } = req.body;
     try {
-        // Verificar que la tarea sí alcanzó su meta antes de completar
         const check = await db.query(
             `SELECT * FROM tasks WHERE id = $1`,
             [req.params.taskId]
@@ -746,18 +740,16 @@ app.patch("/tasks/:taskId/complete", async (req, res) => {
 
         const task = check.rows[0];
 
-        if (task.completed) {
-            return res.status(400).json({ error: "La tarea ya está completada" });
+        if (!task.completed) {
+            return res.status(400).json({ error: "La tarea aún no está completada" });
+        }
+        if (task.claimed) {
+            return res.status(400).json({ error: "Esta recompensa ya fue reclamada" });
         }
 
-        if (task.current_value < task.target_value) {
-            return res.status(400).json({
-                error: `Aún faltan ${task.target_value - task.current_value} para completar esta misión`
-            });
-        }
-
+        // Marcar como reclamada
         const result = await db.query(
-            `UPDATE tasks SET completed = TRUE, completed_at = NOW()
+            `UPDATE tasks SET claimed = TRUE, claimed_at = NOW()
              WHERE id = $1 RETURNING *`,
             [req.params.taskId]
         );
@@ -771,13 +763,7 @@ app.patch("/tasks/:taskId/complete", async (req, res) => {
             [task.points, task.group_id]
         );
 
-        // Notificar al chat del grupo
-        io.to(`chat_group_${task.group_id}`).emit("task_completed", {
-            title: task.title,
-            points: task.points
-        });
-
-        res.json(result.rows[0]);
+        res.json({ ok: true, points: task.points, task: result.rows[0] });
     } catch (err) {
         res.status(500).json(err);
     }
