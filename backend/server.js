@@ -4,7 +4,19 @@ const http = require("http");
 const { Server } = require("socket.io");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
+const nodemailer = require("nodemailer");
 const SALT_ROUNDS = 10;
+
+/* ======================
+   NODEMAILER
+====================== */
+const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+        user: "jon4g4lindo@gmail.com",
+        pass: "hbib amdo dpyt mhiu"
+    }
+});
 
 const app = express();
 const server = http.createServer(app);
@@ -673,6 +685,63 @@ app.patch("/tasks/:taskId/complete", async (req, res) => {
         res.json(task);
     } catch (err) {
         res.status(500).json(err);
+    }
+});
+
+/* ======================
+   EMAIL
+====================== */
+app.post("/send-email", async (req, res) => {
+    const { from_user_id, to_user_id, subject, body } = req.body;
+
+    try {
+        // Obtener datos del remitente y destinatario
+        const [fromRes, toRes] = await Promise.all([
+            db.query(`SELECT full_name, email FROM users WHERE id = $1 LIMIT 1`, [from_user_id]),
+            db.query(`SELECT full_name, email FROM users WHERE id = $1 LIMIT 1`, [to_user_id])
+        ]);
+
+        if (!fromRes.rows.length || !toRes.rows.length) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        const sender    = fromRes.rows[0];
+        const recipient = toRes.rows[0];
+
+        await transporter.sendMail({
+            from: `"FIFA 2026 Support" <jon4g4lindo@gmail.com>`,
+            to: "jon4g4lindo@gmail.com", // siempre al gmail del servidor para demo
+            replyTo: sender.email,
+            subject: `[FIFA 2026] ${subject}`,
+            html: `
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                    <div style="background:linear-gradient(135deg,#001f3f,#0055b3);
+                                padding:24px;border-radius:12px 12px 0 0;text-align:center;">
+                        <h1 style="color:#fff;margin:0;font-size:24px;">🏆 FIFA 2026™ Support</h1>
+                    </div>
+                    <div style="background:#f9f9f9;padding:24px;border-radius:0 0 12px 12px;
+                                border:1px solid #e0e0e0;border-top:none;">
+                        <p style="color:#555;margin:0 0 8px;">
+                            <b>${sender.full_name}</b> te ha enviado un mensaje:
+                        </p>
+                        <div style="background:#fff;border-left:4px solid #0055b3;
+                                    padding:16px;border-radius:8px;margin:16px 0;
+                                    color:#333;font-size:15px;line-height:1.6;">
+                            ${body.replace(/\n/g, "<br>")}
+                        </div>
+                        <p style="color:#aaa;font-size:12px;margin:16px 0 0;">
+                            Este mensaje fue enviado desde FIFA 2026 Support Chat a ${recipient.full_name} (${recipient.email})
+                        </p>
+                    </div>
+                </div>
+            `
+        });
+
+        res.json({ ok: true, message: "Correo enviado correctamente" });
+
+    } catch (err) {
+        console.error("❌ Email error:", err);
+        res.status(500).json({ error: "Error al enviar el correo" });
     }
 });
 
