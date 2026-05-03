@@ -852,7 +852,7 @@ async function loadGroups() {
                     <span style="font-weight:600;white-space:nowrap;overflow:hidden;
                                  text-overflow:ellipsis;">${g.name}</span>
                 </div>
-                ${g.created_by == userId ? `<button class="group-edit-btn" style="flex-shrink:0;">✏️</button>` : ""}
+                <button class="group-edit-btn" style="flex-shrink:0;">✏️</button>
             </div>`;
         div.onclick = (e) => {
             if (e.target.classList.contains("group-edit-btn")) {

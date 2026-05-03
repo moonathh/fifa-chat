@@ -634,8 +634,8 @@ app.put("/groups/:id", async (req, res) => {
     try {
         const result = await db.query(
             `UPDATE groups SET name = $1, image_url = $2, group_photo = $3
-             WHERE id = $4 AND created_by = $5 RETURNING *`,
-            [name, image_url, group_photo || null, req.params.id, user_id]
+             WHERE id = $4 RETURNING *`,
+            [name, image_url, group_photo || null, req.params.id]
         );
         if (!result.rows.length) return res.status(403).json({ error: "No autorizado" });
         res.json(result.rows[0]);
