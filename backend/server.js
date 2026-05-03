@@ -190,16 +190,18 @@ io.on("connection", (socket) => {
 
             if (!chat_id || !message) return;
 
+            const encrypted = data.encrypted || false;
             await db.query(`
-                INSERT INTO messages (chat_id, username, message, message_type)
-                VALUES ($1,$2,$3,$4)
-            `, [chat_id, username, message, message_type]);
+                INSERT INTO messages (chat_id, username, message, message_type, encrypted)
+                VALUES ($1,$2,$3,$4,$5)
+            `, [chat_id, username, message, message_type, encrypted]);
 
             io.to(`chat_${chat_id}`).emit("new_message", {
                 chat_id,
                 username,
                 message,
-                message_type
+                message_type,
+                encrypted
             });
 
             if (chat_id.startsWith("group_")) {
