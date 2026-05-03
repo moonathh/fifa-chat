@@ -989,6 +989,29 @@ async function enviarUbicacion() {
     );
 }
 
+/* ── PRESENCE ── */
+async function setOnline() {
+    if (!userId) return;
+    await fetch(`${API_URL}/users/${userId}/online`, { method: "POST" }).catch(() => {});
+}
+
+async function setOffline() {
+    if (!userId) return;
+    // sendBeacon para que funcione aunque se cierre la pestaña
+    navigator.sendBeacon(`${API_URL}/users/${userId}/offline`);
+}
+
+// Marcar online al cargar
+setOnline();
+
+// Marcar offline al cerrar/salir de la página
+window.addEventListener("beforeunload", setOffline);
+
+// Marcar offline al cerrar sesión
+document.addEventListener("click", (e) => {
+    if (e.target && e.target.id === "logoutBtn") setOffline();
+});
+
 /* INIT */
 loadFriends();
 loadGroups();

@@ -202,6 +202,26 @@
         z-index: 0;
     }
 
+    .online-dot {
+        position: absolute;
+        bottom: 2px; right: 2px;
+        width: 13px; height: 13px;
+        border-radius: 50%;
+        background: #2ed573;
+        border: 2.5px solid #fff;
+        z-index: 20;
+    }
+
+    .offline-dot {
+        position: absolute;
+        bottom: 2px; right: 2px;
+        width: 13px; height: 13px;
+        border-radius: 50%;
+        background: #ccc;
+        border: 2.5px solid #fff;
+        z-index: 20;
+    }
+
     .friend-name {
         font-family: 'Nunito', sans-serif;
         font-weight: 800;
@@ -391,6 +411,10 @@ async function loadFriends() {
                 }
             }
 
+            const onlineDot = f.is_online
+                ? `<div class="online-dot" title="En línea"></div>`
+                : `<div class="offline-dot" title="Desconectado"></div>`;
+
             card.innerHTML = `
                 <div class="friend-avatar-wrap">
                     ${f.profile_frame && !f.equipped_icon ? `<div ${frameStyle}></div>` : ""}
@@ -398,9 +422,15 @@ async function loadFriends() {
                         ${photoHTML}
                     </div>
                     ${iconFrameHTML}
+                    ${onlineDot}
                 </div>
                 <div class="friend-name">${f.full_name}</div>
-                <div class="friend-points">⭐ <span>${f.points || 0}</span> pts</div>
+                <div class="friend-points">
+                    ${f.is_online
+                        ? `<span style="color:#2ed573;font-weight:700;">● En línea</span>`
+                        : `<span style="color:#aaa;">● Desconectado</span>`}
+                    &nbsp;·&nbsp; ⭐ <span>${f.points || 0}</span> pts
+                </div>
                 <button class="friend-chat-btn" onclick="openChat('${f.full_name}')">💬 Enviar mensaje</button>
             `;
 

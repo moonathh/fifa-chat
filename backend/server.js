@@ -167,6 +167,20 @@ io.on("connection", (socket) => {
         socket.leave(`chat_${String(chatId).trim()}`);
     });
 
+    /* ── PRESENCIA ── */
+    socket.on("user_online", async (userId) => {
+        if (!userId) return;
+        socket.userId = userId;
+        await db.query(`UPDATE users SET is_online = TRUE WHERE id = $1`, [userId]);
+        io.emit("presence_update", { userId, online: true });
+    });
+
+    socket.on("user_offline", async (userId) => {
+        if (!userId) return;
+        await db.query(`UPDATE users SET is_online = FALSE WHERE id = $1`, [userId]);
+        io.emit("presence_update", { userId, online: false });
+    });
+
     socket.on("send_message", async (data) => {
         try {
             const chat_id = String(data.chat_id).trim();
@@ -227,8 +241,12 @@ io.on("connection", (socket) => {
         }
     });
 
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
         console.log("🔴 desconectado");
+        if (socket.userId) {
+            await db.query(`UPDATE users SET is_online = FALSE WHERE id = $1`, [socket.userId]);
+            io.emit("presence_update", { userId: socket.userId, online: false });
+        }
     });
 });
 
@@ -296,7 +314,8 @@ app.get("/users/:id", async (req, res) => {
         const result = await db.query(
             `SELECT id, full_name, email, COALESCE(points, 0) AS points,
                     profile_photo, profile_frame, equipped_icon,
-                    COALESCE(owned_icons, '[]'::jsonb) AS owned_icons
+                    COALESCE(owned_icons, '[]'::jsonb) AS owned_icons,
+                    COALESCE(is_online, FALSE) AS is_online
              FROM users WHERE id = $1 LIMIT 1`,
             [req.params.id]
         );
@@ -412,13 +431,31 @@ app.put("/users/:id/equip-icon", async (req, res) => {
 });
 
 /* ======================
+   PRESENCE
+====================== */
+app.post("/users/:id/online", async (req, res) => {
+    try {
+        await db.query(`UPDATE users SET is_online = TRUE WHERE id = $1`, [req.params.id]);
+        res.sendStatus(200);
+    } catch (err) { res.status(500).json(err); }
+});
+
+app.post("/users/:id/offline", async (req, res) => {
+    try {
+        await db.query(`UPDATE users SET is_online = FALSE WHERE id = $1`, [req.params.id]);
+        res.sendStatus(200);
+    } catch (err) { res.status(500).json(err); }
+});
+
+/* ======================
    FRIENDS
 ====================== */
 app.get("/friends/:userId", async (req, res) => {
     try {
         const result = await db.query(
             `SELECT u.id, u.full_name, u.profile_photo, u.profile_frame,
-                    u.equipped_icon, COALESCE(u.points, 0) AS points
+                    u.equipped_icon, COALESCE(u.points, 0) AS points,
+                    COALESCE(u.is_online, FALSE) AS is_online
              FROM users u
              JOIN friends f ON (u.id = f.user1_id OR u.id = f.user2_id)
              WHERE (f.user1_id = $1 OR f.user2_id = $1) AND u.id != $1`,
