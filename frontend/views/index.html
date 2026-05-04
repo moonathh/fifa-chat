@@ -734,22 +734,27 @@ async function loadGroups() {
 
         // Info del grupo
         const info = document.createElement("div");
-        info.style.cssText = "flex:1;display:flex;justify-content:space-between;align-items:center;overflow:hidden;";
-        info.innerHTML = `
-            <span style="font-size:14px;font-weight:600;color:#111;
-                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                ${g.name}
-            </span>
-            ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
-        `;
+        info.style.cssText = "flex:1;display:flex;justify-content:space-between;align-items:center;overflow:hidden;gap:6px;";
+
+        const nameSpan = document.createElement("span");
+        nameSpan.style.cssText = "font-size:14px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
+        nameSpan.textContent = g.name;
+        info.appendChild(nameSpan);
+
+        if (g.created_by == userId) {
+            const editBtn = document.createElement("button");
+            editBtn.className   = "group-edit-btn";
+            editBtn.textContent = "✏️";
+            editBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openEditGroupModal(e, g.id, g.name, g.image_url);
+            });
+            info.appendChild(editBtn);
+        }
 
         div.appendChild(avatarWrap);
         div.appendChild(info);
         div.onclick = (e) => {
-            if (e.target.classList.contains("group-edit-btn")) {
-                openEditGroupModal(e, g.id, g.name, g.image_url);
-                return;
-            }
             document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
             document.getElementById("header-status-text").textContent = "● Grupo";
 
