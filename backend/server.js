@@ -26,11 +26,13 @@ db.query("SELECT NOW()")
     .then(() => console.log("✅ DB conectada"))
     .catch(err => console.error("❌ DB error:", err));
 
-    //tareas predefinidas
+/* ======================
+   TAREAS PREDEFINIDAS
+====================== */
 const DEFAULT_TASKS = [
     {
-        title: "Escritores del grupo",
-        description: "Entre todos envíen 10 mensajes en el grupo",
+        title: "Escritor del grupo",
+        description: "Escribe 10 mensajes en el grupo",
         task_type: "messages",
         target_value: 10,
         points: 100
@@ -43,25 +45,25 @@ const DEFAULT_TASKS = [
         points: 250
     },
     {
-        title: "Dónde están",
-        description: "Compartan su ubicación en el grupo",
-        task_type: "location",
-        target_value: 1,
-        points: 150
-    },
-    {
-        title: "Invita a alguien",
-        description: "Agrega 1 nuevo amigo al grupo",
-        task_type: "friends",
-        target_value: 1,
-        points: 200
-    },
-    {
         title: "Cara a cara",
         description: "Realiza una videollamada grupal",
         task_type: "call",
         target_value: 1,
         points: 500
+    },
+    {
+        title: "Compartir ubicación",
+        description: "Comparte tu ubicación en el grupo",
+        task_type: "location",
+        target_value: 1,
+        points: 150
+    },
+    {
+        title: "Crecer el equipo",
+        description: "Agrega 2 amigos al grupo",
+        task_type: "friends",
+        target_value: 2,
+        points: 300
     }
 ];
 
@@ -76,52 +78,40 @@ async function createDefaultTasks(groupId, createdBy) {
     }
 }
 
-const TASK_TYPE_TO_MSG_TYPE = {
-    messages: "text",
-    media:    "media",
-    location: "location",
-    call:     "call"
-};
-
-/* actualizar progreso de tareas
- - cuenta SOLO eventos ocurridos DESPUÉS de que se creó la tarea 
- - así cada tarea siempre parte de 0*/
-async function updateTaskProgress(chatId, groupId, taskType) {
- 
-    const dbMsgType = TASK_TYPE_TO_MSG_TYPE[taskType] || taskType;
-
-    // obtener tareas activas del tipo correspondiente
+/* ======================
+   HELPER: actualizar progreso (cuenta solo desde created_at de la tarea)
+====================== */
+async function updateTaskProgress(chatId, groupId, username, messageType) {
     const tasks = await db.query(
-        `SELECT t.id, t.target_value, t.assigned_to, t.created_at,
-                u.full_name AS assigned_name
+        `SELECT t.id, t.target_value, t.assigned_to, t.created_at, u.full_name
          FROM tasks t
          LEFT JOIN users u ON u.id = t.assigned_to
          WHERE t.group_id = $1
            AND t.task_type = $2
            AND t.completed = FALSE`,
-        [groupId, taskType]
+        [groupId, messageType]
     );
 
     for (const task of tasks.rows) {
         let countQuery, countParams;
 
         if (task.assigned_to) {
-            // solo cuenta mensajes del usuario asignado, desde que se creó la tarea
+            // Solo cuenta mensajes del usuario asignado, desde que se creó la tarea
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
                   AND username = $2
                   AND message_type = $3
                   AND created_at > $4`;
-            countParams = [chatId, task.assigned_name, dbMsgType, task.created_at];
+            countParams = [chatId, task.full_name, messageType, task.created_at];
         } else {
-            // cuenta mensajes de cualquier miembro del grupo, desde que se creó la tarea
+            // Cualquier miembro, desde que se creó la tarea
             countQuery = `
                 SELECT COUNT(*)::int AS total FROM messages
                 WHERE chat_id = $1
                   AND message_type = $2
                   AND created_at > $3`;
-            countParams = [chatId, dbMsgType, task.created_at];
+            countParams = [chatId, messageType, task.created_at];
         }
 
         const count = await db.query(countQuery, countParams);
@@ -134,64 +124,54 @@ async function updateTaskProgress(chatId, groupId, taskType) {
     }
 }
 
-/* actualizar progreso de tareas tipo 'friends'
- Cuenta miembros añadidos al grupo DESPUÉS de que se creó la tarea
- */
-async function updateFriendsTaskProgress(groupId) {
-    const tasks = await db.query(
-        `SELECT id, target_value, created_at
-         FROM tasks
-         WHERE group_id = $1
-           AND task_type = 'friends'
-           AND completed = FALSE`,
-        [groupId]
-    );
-
-    for (const task of tasks.rows) {
-        // contar miembros añadidos después de que se creó esta tarea
-        const count = await db.query(
-            `SELECT COUNT(*)::int AS total
-             FROM group_members
-             WHERE group_id = $1
-               AND added_at > $2`,
-            [groupId, task.created_at]
-        );
-        const total = count.rows[0].total;
-        await db.query(
-            `UPDATE tasks SET current_value = $1 WHERE id = $2`,
-            [total, task.id]
-        );
-    }
-}
-
-/* marcar tareas completadas (SIN dar puntos todavia)*/
 async function rewardCompletedTasks(groupId, taskType, chatId) {
     try {
-        const completed = await db.query(`
-            UPDATE tasks
-            SET completed = TRUE,
-                completed_at = NOW()
+        // Solo notificar que la tarea alcanzó su meta (no auto-completar)
+        // El usuario debe marcarla manualmente
+        const ready = await db.query(`
+            SELECT id, title, points, current_value, target_value
+            FROM tasks
             WHERE group_id = $1
-              AND task_type = $2
-              AND completed = FALSE
-              AND claimed = FALSE
-              AND current_value >= target_value
-            RETURNING *
+            AND task_type = $2
+            AND completed = FALSE
+            AND current_value >= target_value
         `, [groupId, taskType]);
 
-        for (const task of completed.rows) {
-            // solo notificar — puntos se entregan al reclamar desde task.html
-            io.to(`chat_${chatId}`).emit("task_completed", {
+        for (const task of ready.rows) {
+            io.to(`chat_${chatId}`).emit("task_ready", {
+                id: task.id,
                 title: task.title,
                 points: task.points
             });
         }
+
+        // Refrescar panel
+        io.to(`chat_${chatId}`).emit("task_progress");
+
     } catch (err) {
-        console.error("ERROR rewardCompletedTasks:", err);
+        console.log("ERROR rewardCompletedTasks:", err);
     }
 }
 
-/* SOCKET CHAT */
+// Dar puntos a todos los miembros del grupo al completar una tarea
+async function giveGroupPoints(groupId, points, taskId, chatId) {
+    await db.query(`
+        UPDATE users
+        SET points = COALESCE(points,0) + $1
+        WHERE id IN (
+            SELECT user_id FROM group_members WHERE group_id = $2
+        )
+    `, [points, groupId]);
+
+    io.to(`chat_${chatId}`).emit("task_completed", {
+        taskId,
+        points
+    });
+}
+
+/* ======================
+   SOCKET CHAT
+====================== */
 io.on("connection", (socket) => {
     console.log("🟢 conectado:", socket.id);
 
@@ -203,7 +183,7 @@ io.on("connection", (socket) => {
         socket.leave(`chat_${String(chatId).trim()}`);
     });
 
-    /* estatus */
+    /* ── PRESENCIA ── */
     socket.on("user_online", async (userId) => {
         if (!userId) return;
         socket.userId = userId;
@@ -229,72 +209,36 @@ io.on("connection", (socket) => {
 
             await db.query(`
                 INSERT INTO messages (chat_id, username, message, message_type, encrypted)
-                VALUES ($1, $2, $3, $4, $5)
+                VALUES ($1,$2,$3,$4,$5)
             `, [chat_id, username, message, message_type, encrypted]);
 
             io.to(`chat_${chat_id}`).emit("new_message", {
-                chat_id,
-                username,
-                message,
-                message_type,
-                encrypted
+                chat_id, username, message, message_type, encrypted
             });
 
-            // solo actualizar tareas en chats de grupo
             if (chat_id.startsWith("group_")) {
                 const groupId = parseInt(chat_id.replace("group_", ""));
 
-                // actualizar progreso según el tipo de mensaje
-                if (["text", "media", "location"].includes(message_type)) {
-                    // mapear message_type al task_type correcto
-                    const taskType = message_type === "text" ? "messages" : message_type;
-                    await updateTaskProgress(chat_id, groupId, taskType);
+                // text, media, location, call — todos usan updateTaskProgress
+                // que cuenta solo desde created_at de cada tarea
+                const progressTypes = ["text", "media", "location", "call"];
+                const typeMap = {
+                    text:     "messages",
+                    media:    "media",
+                    location: "location",
+                    call:     "call"
+                };
+
+                if (progressTypes.includes(message_type)) {
+                    const taskType = typeMap[message_type];
+                    await updateTaskProgress(chat_id, groupId, username, taskType);
                     await rewardCompletedTasks(groupId, taskType, chat_id);
                 }
-
-                if (message_type === "call") {
-                    await updateTaskProgress(chat_id, groupId, "call");
-                    await rewardCompletedTasks(groupId, "call", chat_id);
-                }
-
-                io.to(`chat_${chat_id}`).emit("task_progress");
             }
 
         } catch (err) {
-            console.error("ERROR SOCKET:", err);
+            console.log("ERROR SOCKET:", err);
         }
-    });
-
-    /* web rtc*/
-    socket.on("call_invite", (data) => {
-        // enviar al otro usuario en el mismo chat
-        socket.to(`chat_${data.to_chat_id}`).emit("call_invite", {
-            from_name:  data.from_name,
-            to_chat_id: data.to_chat_id,
-            offer:      data.offer
-        });
-    });
-
-    socket.on("call_answer", (data) => {
-        socket.to(`chat_${data.to_chat_id}`).emit("call_answer", {
-            answer:     data.answer,
-            to_chat_id: data.to_chat_id
-        });
-    });
-
-    socket.on("call_ice", (data) => {
-        socket.to(`chat_${data.to_chat_id}`).emit("call_ice", {
-            candidate:  data.candidate,
-            to_chat_id: data.to_chat_id
-        });
-    });
-
-    socket.on("call_end", (data) => {
-        socket.to(`chat_${data.to_chat_id}`).emit("call_end", {});
-    });
-
-    socket.on("call_reject", (data) => {
-        socket.to(`chat_${data.to_chat_id}`).emit("call_reject", {});
     });
 
     socket.on("disconnect", async () => {
@@ -306,14 +250,24 @@ io.on("connection", (socket) => {
     });
 });
 
-/* registro*/
+/* ======================
+   REGISTER
+====================== */
+const MTY_GROUP_ID = 9999;
+
 app.post("/register", async (req, res) => {
     const { full_name, email, password } = req.body;
     try {
-        const hash = await bcrypt.hash(password, SALT_ROUNDS);
-        await db.query(
-            `INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3)`,
+        const hash   = await bcrypt.hash(password, SALT_ROUNDS);
+        const result = await db.query(
+            `INSERT INTO users (full_name, email, password) VALUES ($1, $2, $3) RETURNING id`,
             [full_name, email, hash]
+        );
+        const newUserId = result.rows[0].id;
+        // Auto-unir al grupo MTY
+        await db.query(
+            `INSERT INTO group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [MTY_GROUP_ID, newUserId]
         );
         res.sendStatus(200);
     } catch (err) {
@@ -321,7 +275,9 @@ app.post("/register", async (req, res) => {
     }
 });
 
-/* login */
+/* ======================
+   LOGIN
+====================== */
 app.post("/login", async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -358,7 +314,9 @@ app.post("/login", async (req, res) => {
     }
 });
 
-/* usuarios*/
+/* ======================
+   USERS
+====================== */
 app.get("/users/:id", async (req, res) => {
     try {
         const result = await db.query(
@@ -408,7 +366,9 @@ app.put("/users/:id/photo", async (req, res) => {
     }
 });
 
-/* foto de perfil*/
+/* ======================
+   ICONS
+====================== */
 app.get("/users/:id/icons", async (req, res) => {
     try {
         const result = await db.query(
@@ -436,7 +396,7 @@ app.post("/users/:id/buy-icon", async (req, res) => {
         );
         if (!userRes.rows.length) throw new Error("Usuario no encontrado");
 
-        const user  = userRes.rows[0];
+        const user = userRes.rows[0];
         const owned = user.owned_icons || [];
 
         if (owned.includes(icon_id)) {
@@ -478,7 +438,9 @@ app.put("/users/:id/equip-icon", async (req, res) => {
     }
 });
 
-/* estado de conexión*/
+/* ======================
+   PRESENCE
+====================== */
 app.post("/users/:id/online", async (req, res) => {
     try {
         await db.query(`UPDATE users SET is_online = TRUE WHERE id = $1`, [req.params.id]);
@@ -493,7 +455,9 @@ app.post("/users/:id/offline", async (req, res) => {
     } catch (err) { res.status(500).json(err); }
 });
 
-/* amikos */
+/* ======================
+   FRIENDS
+====================== */
 app.get("/friends/:userId", async (req, res) => {
     try {
         const result = await db.query(
@@ -529,7 +493,9 @@ app.post("/friends", async (req, res) => {
     }
 });
 
-/* mensajes*/
+/* ======================
+   MESSAGES
+====================== */
 app.get("/messages/:chat", async (req, res) => {
     try {
         const chat = String(req.params.chat).trim();
@@ -543,31 +509,19 @@ app.get("/messages/:chat", async (req, res) => {
     }
 });
 
-/* email de usuarios */
-app.get("/users/by-email/:email", async (req, res) => {
-    try {
-        const result = await db.query(
-            `SELECT id, full_name, email FROM users WHERE email = $1 LIMIT 1`,
-            [decodeURIComponent(req.params.email)]
-        );
-        if (!result.rows.length) return res.status(404).json({ error: "Usuario no encontrado" });
-        res.json(result.rows[0]);
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
-/* grupos*/
+/* ======================
+   GROUPS
+====================== */
 app.get("/groups/:userId", async (req, res) => {
     try {
         const result = await db.query(
-            `SELECT g.id, g.name, g.image_url, g.group_photo, g.created_by,
+            `SELECT g.id, g.name, g.image_url, g.created_by,
                     COUNT(gm2.user_id) AS member_count
              FROM groups g
              JOIN group_members gm ON gm.group_id = g.id
              LEFT JOIN group_members gm2 ON gm2.group_id = g.id
              WHERE gm.user_id = $1
-             GROUP BY g.id, g.name, g.image_url, g.group_photo, g.created_by, g.created_at
+             GROUP BY g.id, g.name, g.image_url, g.created_by, g.created_at
              ORDER BY g.created_at DESC`,
             [req.params.userId]
         );
@@ -607,9 +561,7 @@ app.post("/groups", async (req, res) => {
         const allMembers = [...new Set([Number(created_by), ...(member_ids || []).map(Number)])];
         for (const uid of allMembers) {
             await client.query(
-                `INSERT INTO group_members (group_id, user_id, added_at)
-                 VALUES ($1, $2, NOW())
-                 ON CONFLICT (group_id, user_id) DO NOTHING`,
+                `INSERT INTO group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
                 [group.id, uid]
             );
         }
@@ -627,12 +579,12 @@ app.post("/groups", async (req, res) => {
 });
 
 app.put("/groups/:id", async (req, res) => {
-    const { name, image_url, user_id, group_photo } = req.body;
+    const { name, image_url, user_id } = req.body;
     try {
         const result = await db.query(
-            `UPDATE groups SET name = $1, image_url = $2, group_photo = $3
-             WHERE id = $4 RETURNING *`,
-            [name, image_url, group_photo || null, req.params.id]
+            `UPDATE groups SET name = $1, image_url = $2
+             WHERE id = $3 AND created_by = $4 RETURNING *`,
+            [name, image_url, req.params.id, user_id]
         );
         if (!result.rows.length) return res.status(403).json({ error: "No autorizado" });
         res.json(result.rows[0]);
@@ -641,35 +593,9 @@ app.put("/groups/:id", async (req, res) => {
     }
 });
 
-/* agregar nuevo miebro al grupo */
-app.post("/groups/:groupId/members", async (req, res) => {
-    const { user_id } = req.body;
-    const groupId = parseInt(req.params.groupId);
-    try {
-        // insertar nuevo miembro con timestamp actual
-        const result = await db.query(
-            `INSERT INTO group_members (group_id, user_id, added_at)
-             VALUES ($1, $2, NOW())
-             ON CONFLICT (group_id, user_id) DO NOTHING
-             RETURNING *`,
-            [groupId, user_id]
-        );
-
-        if (result.rowCount > 0) {
-            // actualizar progreso de tareas tipo 'friends'
-            await updateFriendsTaskProgress(groupId);
-            await rewardCompletedTasks(groupId, "friends", `group_${groupId}`);
-            // notificar al grupo del progreso
-            io.to(`chat_group_${groupId}`).emit("task_progress");
-        }
-
-        res.json({ ok: true });
-    } catch (err) {
-        res.status(500).json(err);
-    }
-});
-
-/* ventana task */
+/* ======================
+   TASKS
+====================== */
 app.get("/tasks/:groupId", async (req, res) => {
     try {
         const result = await db.query(
@@ -714,8 +640,7 @@ app.post("/tasks", async (req, res) => {
     try {
         const result = await db.query(
             `INSERT INTO tasks
-             (group_id, title, description, points, assigned_to, created_by,
-              task_type, target_value, current_value)
+             (group_id, title, description, points, assigned_to, created_by, task_type, target_value, current_value)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0)
              RETURNING *`,
             [
@@ -736,47 +661,60 @@ app.post("/tasks", async (req, res) => {
     }
 });
 
-/* ── RECLAMAR RECOMPENSA (solo desde task.html)*/
-app.patch("/tasks/:taskId/claim", async (req, res) => {
+app.patch("/tasks/:taskId/complete", async (req, res) => {
     const { user_id } = req.body;
     try {
-        const check = await db.query(
-            `SELECT * FROM tasks WHERE id = $1`,
-            [req.params.taskId]
-        );
-        if (!check.rows.length) return res.status(404).json({ error: "Tarea no encontrada" });
-
-        const task = check.rows[0];
-
-        if (!task.completed) {
-            return res.status(400).json({ error: "La tarea aún no está completada" });
-        }
-        if (task.claimed) {
-            return res.status(400).json({ error: "Esta recompensa ya fue reclamada" });
-        }
-
-        // marcar como reclamada
         const result = await db.query(
-            `UPDATE tasks SET claimed = TRUE, claimed_at = NOW()
+            `UPDATE tasks SET completed = TRUE, completed_at = NOW()
              WHERE id = $1 RETURNING *`,
             [req.params.taskId]
         );
+        if (!result.rows.length) return res.status(404).json({ error: "Tarea no encontrada" });
 
-        // dar puntos a todos los miembros del grupo
+        const task = result.rows[0];
         await db.query(
-            `UPDATE users SET points = COALESCE(points, 0) + $1
-             WHERE id IN (
-                 SELECT user_id FROM group_members WHERE group_id = $2
-             )`,
-            [task.points, task.group_id]
+            `UPDATE users SET points = COALESCE(points, 0) + $1 WHERE id = $2`,
+            [task.points, user_id]
         );
-
-        res.json({ ok: true, points: task.points, task: result.rows[0] });
+        res.json(task);
     } catch (err) {
         res.status(500).json(err);
     }
 });
 
-/* server */
+/* ======================
+   MTY GROUP
+====================== */
+app.get("/mty/online-count", async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT COUNT(*)::int AS total
+            FROM users u
+            JOIN group_members gm ON gm.user_id = u.id
+            WHERE gm.group_id = $1
+              AND u.is_online = TRUE
+        `, [MTY_GROUP_ID]);
+        res.json({ count: result.rows[0].total });
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+app.get("/mty/member-count", async (req, res) => {
+    try {
+        const result = await db.query(`
+            SELECT COUNT(*)::int AS total
+            FROM group_members
+            WHERE group_id = $1
+        `, [MTY_GROUP_ID]);
+        res.json({ count: result.rows[0].total });
+    } catch (err) {
+        res.status(500).json(err);
+    }
+});
+
+/* ======================
+   SERVER
+====================== */
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log("🚀 running on", PORT));

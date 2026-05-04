@@ -2,66 +2,645 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Ayuda MTY | FIFA 2026 Support</title>
     <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        /* ── HEADER ── */
+        .mty-chat-header {
+            background: linear-gradient(135deg, #001f3f, #003580);
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .mty-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mty-header-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+
+        .mty-header-info h3 {
+            margin: 0;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+        }
+
+        .mty-header-info p {
+            margin: 2px 0 0;
+            font-size: 12px;
+            color: rgba(255,255,255,.7);
+        }
+
+        .mty-online-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(46,213,115,.15);
+            border: 1px solid rgba(46,213,115,.4);
+            border-radius: 20px;
+            padding: 6px 14px;
+            color: #2ed573;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .mty-online-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #2ed573;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%       { opacity: .5; transform: scale(1.3); }
+        }
+
+        /* ── MESSAGES ── */
+        .mty-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            background: #f5f7fa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mty-msg-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 8px;
+        }
+
+        .mty-msg-row.sent {
+            flex-direction: row-reverse;
+        }
+
+        .mty-msg-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #dde3f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .mty-msg-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .mty-bubble {
+            max-width: 68%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.5;
+            box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        }
+
+        .mty-msg-row.sent .mty-bubble {
+            background: linear-gradient(135deg, #0055b3, #00aaff);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .mty-msg-row.received .mty-bubble {
+            background: #fff;
+            color: #222;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e8ecf0;
+        }
+
+        .mty-bubble-name {
+            font-size: 11px;
+            font-weight: 700;
+            margin-bottom: 3px;
+            opacity: .75;
+        }
+
+        .mty-bubble img.media-img {
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 10px;
+            display: block;
+            margin-top: 6px;
+            cursor: pointer;
+        }
+
+        .mty-bubble video {
+            max-width: 100%;
+            max-height: 220px;
+            border-radius: 10px;
+            display: block;
+            margin-top: 6px;
+        }
+
+        .mty-map-wrap {
+            margin-top: 6px;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(0,0,0,.08);
+        }
+
+        .mty-map-wrap iframe {
+            display: block;
+            border: none;
+            width: 240px;
+            height: 160px;
+        }
+
+        .mty-map-link {
+            display: block;
+            padding: 6px 10px;
+            font-size: 12px;
+            background: rgba(0,0,0,.06);
+            text-decoration: none;
+            color: inherit;
+            text-align: center;
+        }
+
+        .mty-time {
+            font-size: 10px;
+            opacity: .5;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        /* ── MEDIA PREVIEW ── */
+        .mty-media-preview {
+            display: none;
+            padding: 8px 14px;
+            background: #eef2ff;
+            border-top: 1px solid #dde3f0;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .mty-media-preview span {
+            flex: 1;
+            font-size: 13px;
+            color: #333;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .mty-media-preview button {
+            background: none;
+            border: none;
+            color: #ff4757;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        /* ── INPUT BAR ── */
+        .mty-input-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: #fff;
+            border-top: 1px solid #e8ecf0;
+        }
+
+        .mty-icon-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 22px;
+            padding: 4px 6px;
+            border-radius: 8px;
+            transition: background .15s;
+            flex-shrink: 0;
+        }
+
+        .mty-icon-btn:hover { background: #f0f2f7; }
+
+        .mty-input-bar input[type=text] {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e5e9f0;
+            border-radius: 22px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color .2s;
+        }
+
+        .mty-input-bar input[type=text]:focus {
+            border-color: #0055b3;
+        }
+
+        .mty-send-btn {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #001f3f, #0055b3);
+            color: #fff;
+            border: none;
+            border-radius: 22px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+            transition: opacity .2s;
+            flex-shrink: 0;
+        }
+
+        .mty-send-btn:hover { opacity: .88; }
+
+        /* ── SISTEMA DE TAGS ── */
+        .tag-pill {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-bottom: 4px;
+        }
+        .tag-location { background: #fff3cd; color: #856404; }
+        .tag-media    { background: #d1ecf1; color: #0c5460; }
+        .tag-text     { background: #d4edda; color: #155724; }
+
+        /* ── DATE DIVIDER ── */
+        .date-divider {
+            text-align: center;
+            font-size: 11px;
+            color: #aaa;
+            margin: 8px 0;
+            position: relative;
+        }
+        .date-divider::before, .date-divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 30%;
+            height: 1px;
+            background: #e0e0e0;
+        }
+        .date-divider::before { left: 0; }
+        .date-divider::after  { right: 0; }
+    </style>
 </head>
 <body>
-    <div class="app-layout">
-        <nav class="navbar-top">
+
+<div class="app-layout">
+
+<nav class="navbar-top">
     <div class="logo-area"><span>🏆</span> FIFA 2026™ Support Chat</div>
     <div class="user-profile">
-        <span id="user-name-display" style="font-weight: bold; margin-right: 10px;">Invitado</span>
-        <a href="profile.html" class="profile-trigger"><div class="avatar">👤</div></a>
+        <span id="user-name-display">Cargando...</span>
+        <a href="profile.html" class="profile-trigger">
+            <div class="avatar">👤</div>
+        </a>
     </div>
 </nav>
-        <div class="main-container">
-            <aside class="sidebar-nav">
-                <div class="nav-section">
-                    <p class="nav-section-title">Comunicación</p>
-                    <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
-                    <a href="social.html" class="nav-item"><span>👥</span> Social</a>
-                </div>
-                <div class="nav-section">
-                    <p class="nav-section-title">Comunidad Local</p>
-                    <a href="help-mty.html" class="nav-item active"><span>🤠</span> Ayuda MTY</a>
-                </div>
-                <div class="nav-section">
-                    <p class="nav-section-title">Logística</p>
-                    <a href="task.html" class="nav-item"><span>📋</span> Tareas de Grupo</a>
-                    <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
-                </div>
-            </aside>
-            <main class="chat-window">
-                <header class="chat-header" style="background: #f8f9fa; border-bottom: 2px solid #004795;">
-                    <div class="header-status">
-                        <div class="status-dot" style="background: #2ed573;"></div>
-                        <strong>🤠 Foro de Ayuda: Monterrey</strong>
-                        <small style="margin-left: 10px; color: #666;">542 locales en línea</small>
-                    </div>
-                </header>
-                <section class="chat-messages" id="help-messages">
-    <div class="message-wrapper received">
-        <div class="message-bubble">
-            <div class="message-info"><b>Jake Mendez</b></div>
-            Hi! Which is the best way to get to Estadio BBVA?
-            <span class="message-time">14:20</span>
+
+<div class="main-container">
+
+<aside class="sidebar-nav">
+    <div class="nav-section">
+        <p class="nav-section-title">Comunicación</p>
+        <a href="index.html" class="nav-item"><span>💬</span> Chats</a>
+        <a href="social.html" class="nav-item"><span>👥</span> Social</a>
+    </div>
+    <div class="nav-section">
+        <p class="nav-section-title">Comunidad Local</p>
+        <a href="help-mty.html" class="nav-item active"><span>🤠</span> Ayuda MTY</a>
+    </div>
+    <div class="nav-section">
+        <p class="nav-section-title">Logística</p>
+        <a href="task.html" class="nav-item"><span>📋</span> Tareas de Grupo</a>
+        <a href="rewards.html" class="nav-item"><span>🎁</span> Tienda</a>
+    </div>
+</aside>
+
+<main class="chat-window" style="display:flex;flex-direction:column;padding:0;overflow:hidden;">
+
+    <!-- HEADER -->
+    <div class="mty-chat-header">
+        <div class="mty-header-left">
+            <div class="mty-header-icon">🤠</div>
+            <div class="mty-header-info">
+                <h3>Ayuda MTY — Canal General</h3>
+                <p id="member-count-text">Cargando miembros...</p>
+            </div>
+        </div>
+        <div class="mty-online-badge">
+            <div class="mty-online-dot"></div>
+            <span id="online-count">0</span> en línea
         </div>
     </div>
-<div class="message-wrapper sent">
-<div class="message-bubble">
-<div class="message-info"><b>mrrayado</b></div>
-alch no sé 🤙
-<span class="message-time">14:22 ✅</span>
-</div>
-</div>
-</section>
-    <footer class="input-bar">
-        <input type="text" placeholder="Haz una pregunta o ayuda a un turista...">
-        <button class="send-btn">Preguntar</button>
-    </footer>
+
+    <!-- MESSAGES -->
+    <div class="mty-messages" id="mty-messages"></div>
+
+    <!-- MEDIA PREVIEW -->
+    <div class="mty-media-preview" id="mty-media-preview">
+        <span id="mty-preview-name"></span>
+        <button onclick="cancelMedia()">✕</button>
+    </div>
+
+    <!-- INPUT BAR -->
+    <input type="file" id="mty-file-input" accept="image/*,video/*"
+           style="display:none;" onchange="onMediaSelected(this)">
+
+    <div class="mty-input-bar">
+        <button class="mty-icon-btn" title="Adjuntar foto o video"
+            onclick="document.getElementById('mty-file-input').click()">📎</button>
+        <button class="mty-icon-btn" id="mty-location-btn"
+            title="Compartir ubicación" onclick="enviarUbicacion()">📍</button>
+        <input type="text" id="mty-input" placeholder="Escribe un mensaje o comparte algo...">
+        <button class="mty-send-btn" id="mty-send-btn" onclick="enviarMensaje()">Enviar</button>
+    </div>
+
 </main>
 </div>
 </div>
-    <script src="../js/navbar.js"></script>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+const API      = "https://fifa-chat-dr6w.onrender.com";
+const MTY_CHAT = "group_9999";
+const userId   = sessionStorage.getItem("user_id");
+const userName = sessionStorage.getItem("userName");
+
+if (!userId) window.location.href = "login.html";
+
+document.getElementById("user-name-display").textContent = userName;
+
+const SUPABASE_URL  = "https://ktfojwoghksilundhyuh.supabase.co";
+const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Zm9qd29naGtzaWx1bmRoeXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDYyNjAsImV4cCI6MjA5MTg4MjI2MH0.WN4mZ2AoAU148zKAtip-Ixd-cG0WJOM2bDB_DIjMA1E";
+
+const socket = io(API);
+let pendingFile = null;
+
+// Cache de fotos de perfil por username
+const photoCache = {};
+
+/* ── SOCKET ── */
+socket.emit("join_chat", MTY_CHAT);
+
+socket.on("new_message", (msg) => {
+    if (String(msg.chat_id).trim() !== MTY_CHAT) return;
+    renderMessage(msg);
+});
+
+socket.on("presence_update", () => {
+    loadOnlineCount();
+});
+
+/* ── LOAD ── */
+async function init() {
+    await Promise.all([loadMessages(), loadCounts()]);
+    // Polling de online count cada 30s
+    setInterval(loadOnlineCount, 30000);
+}
+
+async function loadMessages() {
+    try {
+        const res  = await fetch(`${API}/messages/${MTY_CHAT}`);
+        const msgs = await res.json();
+        document.getElementById("mty-messages").innerHTML = "";
+        msgs.forEach(renderMessage);
+    } catch (e) { console.error(e); }
+}
+
+async function loadCounts() {
+    try {
+        const [onlineRes, memberRes] = await Promise.all([
+            fetch(`${API}/mty/online-count`),
+            fetch(`${API}/mty/member-count`)
+        ]);
+        const online = await onlineRes.json();
+        const member = await memberRes.json();
+        document.getElementById("online-count").textContent  = online.count;
+        document.getElementById("member-count-text").textContent =
+            `${member.count} miembros · ${online.count} en línea`;
+    } catch (e) { console.error(e); }
+}
+
+async function loadOnlineCount() {
+    try {
+        const [onlineRes, memberRes] = await Promise.all([
+            fetch(`${API}/mty/online-count`),
+            fetch(`${API}/mty/member-count`)
+        ]);
+        const online = await onlineRes.json();
+        const member = await memberRes.json();
+        document.getElementById("online-count").textContent = online.count;
+        document.getElementById("member-count-text").textContent =
+            `${member.count} miembros · ${online.count} en línea`;
+    } catch (e) { console.error(e); }
+}
+
+/* ── RENDER MESSAGE ── */
+async function renderMessage(msg) {
+    const area   = document.getElementById("mty-messages");
+    const isSent = msg.username === userName;
+    const row    = document.createElement("div");
+    row.className = `mty-msg-row ${isSent ? "sent" : "received"}`;
+
+    // Avatar
+    let avatarHTML = "👤";
+    if (!isSent) {
+        if (photoCache[msg.username]) {
+            avatarHTML = `<img src="${photoCache[msg.username]}" alt="">`;
+        }
+    } else {
+        // Propio usuario — foto del sessionStorage si existe
+        const myPhoto = sessionStorage.getItem("profile_photo");
+        if (myPhoto) avatarHTML = `<img src="${myPhoto}" alt="">`;
+    }
+
+    // Contenido del mensaje
+    let bodyHTML = "";
+    const type   = msg.message_type || "text";
+
+    if (type === "media") {
+        const isVideo = /\.(mp4|webm|mov|avi)(\?|$)/i.test(msg.message);
+        if (isVideo) {
+            bodyHTML = `<div class="tag-pill tag-media">📹 Video</div>
+                <video src="${msg.message}" controls></video>`;
+        } else {
+            bodyHTML = `<div class="tag-pill tag-media">📸 Foto</div>
+                <img class="media-img" src="${msg.message}" alt="imagen"
+                     onclick="window.open('${msg.message}','_blank')">`;
+        }
+    } else if (type === "location") {
+        const urlMatch = msg.message.match(/https:\/\/[^\s]+/);
+        const mapUrl   = urlMatch ? urlMatch[0] : null;
+        const coords   = mapUrl ? mapUrl.replace("https://www.google.com/maps?q=","").split(",") : [];
+        bodyHTML = mapUrl ? `
+            <div class="tag-pill tag-location">📍 Ubicación</div>
+            <div class="mty-map-wrap">
+                <iframe src="https://maps.google.com/maps?q=${coords[0]},${coords[1]}&z=17&markers=${coords[0]},${coords[1]}&output=embed"
+                    loading="lazy"></iframe>
+                <a class="mty-map-link" href="${mapUrl}" target="_blank">Ver en Google Maps →</a>
+            </div>` : `<span>${msg.message}</span>`;
+    } else {
+        bodyHTML = `<span>${msg.message}</span>`;
+    }
+
+    const time = msg.created_at
+        ? new Date(msg.created_at).toLocaleTimeString("es-MX", { hour:"2-digit", minute:"2-digit" })
+        : "";
+
+    row.innerHTML = `
+        <div class="mty-msg-avatar">${avatarHTML}</div>
+        <div>
+            <div class="mty-bubble">
+                ${!isSent ? `<div class="mty-bubble-name">${msg.username}</div>` : ""}
+                ${bodyHTML}
+                <div class="mty-time">${time}</div>
+            </div>
+        </div>`;
+
+    area.appendChild(row);
+    area.scrollTop = area.scrollHeight;
+}
+
+/* ── SEND TEXT ── */
+async function enviarMensaje() {
+    const input = document.getElementById("mty-input");
+    const msg   = input.value.trim();
+
+    if (pendingFile) {
+        await uploadAndSend();
+        return;
+    }
+
+    if (!msg) return;
+
+    socket.emit("send_message", {
+        chat_id:      MTY_CHAT,
+        username:     userName,
+        message:      msg,
+        message_type: "text",
+        encrypted:    false
+    });
+
+    input.value = "";
+}
+
+document.getElementById("mty-input").addEventListener("keydown", e => {
+    if (e.key === "Enter") enviarMensaje();
+});
+
+/* ── MEDIA ── */
+function onMediaSelected(input) {
+    const file = input.files[0];
+    if (!file) return;
+    pendingFile = file;
+    const preview = document.getElementById("mty-media-preview");
+    document.getElementById("mty-preview-name").textContent =
+        `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
+    preview.style.display = "flex";
+}
+
+function cancelMedia() {
+    pendingFile = null;
+    document.getElementById("mty-file-input").value = "";
+    document.getElementById("mty-media-preview").style.display = "none";
+}
+
+async function uploadAndSend() {
+    const btn = document.getElementById("mty-send-btn");
+    btn.textContent = "⏳";
+    btn.disabled    = true;
+    try {
+        const ext      = pendingFile.name.split(".").pop();
+        const filename = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const res = await fetch(
+            `${SUPABASE_URL}/storage/v1/object/media/${filename}`,
+            {
+                method:  "POST",
+                headers: {
+                    "Authorization": `Bearer ${SUPABASE_ANON}`,
+                    "Content-Type":  pendingFile.type,
+                    "x-upsert":      "true"
+                },
+                body: pendingFile
+            }
+        );
+        if (!res.ok) throw new Error("Upload failed");
+        const url = `${SUPABASE_URL}/storage/v1/object/public/media/${filename}`;
+        socket.emit("send_message", {
+            chat_id:      MTY_CHAT,
+            username:     userName,
+            message:      url,
+            message_type: "media",
+            encrypted:    false
+        });
+        cancelMedia();
+    } catch (err) {
+        alert("Error al subir el archivo.");
+        console.error(err);
+    } finally {
+        btn.textContent = "Enviar";
+        btn.disabled    = false;
+    }
+}
+
+/* ── LOCATION ── */
+function enviarUbicacion() {
+    if (!navigator.geolocation) {
+        alert("Tu navegador no soporta geolocalización.");
+        return;
+    }
+    const btn = document.getElementById("mty-location-btn");
+    btn.textContent = "⏳";
+    btn.disabled    = true;
+
+    navigator.geolocation.getCurrentPosition(
+        (pos) => {
+            const lat = pos.coords.latitude.toFixed(6);
+            const lng = pos.coords.longitude.toFixed(6);
+            const url = `https://www.google.com/maps?q=${lat},${lng}`;
+            socket.emit("send_message", {
+                chat_id:      MTY_CHAT,
+                username:     userName,
+                message:      `📍 Mi ubicación: ${url}`,
+                message_type: "location",
+                encrypted:    false
+            });
+            btn.textContent = "📍";
+            btn.disabled    = false;
+        },
+        () => {
+            alert("No se pudo obtener tu ubicación.");
+            btn.textContent = "📍";
+            btn.disabled    = false;
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+init();
+</script>
+<script src="../js/navbar.js"></script>
 </body>
 </html>
