@@ -715,63 +715,19 @@ async function loadGroups() {
 
         const div = document.createElement("div");
         div.className = "friend-item";
-        div.style.cssText = "display:flex;align-items:center;gap:10px;padding:10px 14px;";
-
-        // Avatar del grupo
-        const avatarWrap = document.createElement("div");
-        avatarWrap.style.cssText = `
-            width:36px;height:36px;border-radius:50%;flex-shrink:0;
-            background:#e0e7ff;display:flex;align-items:center;
-            justify-content:center;font-size:20px;overflow:hidden;
-        `;
-        // Si image_url es una URL de imagen real, mostrarla; si no, mostrar emoji
-        if (g.image_url && g.image_url.startsWith("http")) {
-            avatarWrap.innerHTML = `<img src="${g.image_url}"
-                style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-        } else {
-            avatarWrap.textContent = g.image_url || "👥";
-        }
-
-        // Info del grupo
-        const info = document.createElement("div");
-        info.style.cssText = "flex:1;display:flex;justify-content:space-between;align-items:center;overflow:hidden;gap:6px;";
-
-        const nameSpan = document.createElement("span");
-        nameSpan.style.cssText = "font-size:14px;font-weight:600;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;";
-        nameSpan.textContent = g.name;
-        info.appendChild(nameSpan);
-
-        if (g.created_by == userId) {
-            const editBtn = document.createElement("button");
-            editBtn.className   = "group-edit-btn";
-            editBtn.textContent = "✏️";
-            editBtn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                openEditGroupModal(e, g.id, g.name, g.image_url);
-            });
-            info.appendChild(editBtn);
-        }
-
-        div.appendChild(avatarWrap);
-        div.appendChild(info);
+        div.innerHTML = `
+            <div class="group-item-row">
+                <span>${g.image_url} ${g.name}</span>
+                ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
+            </div>`;
         div.onclick = (e) => {
-            document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
-            document.getElementById("header-status-text").textContent = "● Grupo";
-
-            // Header avatar — emoji o imagen
-            const headerAv = document.getElementById("header-avatar");
-            headerAv.style.cssText = `
-                width:38px;height:38px;border-radius:50%;flex-shrink:0;
-                background:#e0e7ff;display:flex;align-items:center;
-                justify-content:center;font-size:20px;overflow:hidden;
-            `;
-            if (g.image_url && g.image_url.startsWith("http")) {
-                headerAv.innerHTML = `<img src="${g.image_url}"
-                    style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-            } else {
-                headerAv.textContent = g.image_url || "👥";
+            if (e.target.classList.contains("group-edit-btn")) {
+                openEditGroupModal(e, g.id, g.name, g.image_url);
+                return;
             }
-
+            document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
+            document.getElementById("header-avatar").textContent = g.image_url;
+            document.getElementById("header-status-text").textContent = "● Grupo";
             joinChat(`group_${g.id}`, "group", g);
             loadGroupTasks(g.id);
         };
@@ -998,10 +954,16 @@ async function crearGrupo() {
 }
 
 /* GROUP EDIT */
-function openEditGroupModal(e, id, name) {
+function openEditGroupModal(e, id, name, image_url) {
     e.stopPropagation();
-    document.getElementById("edit-group-id").value  = id;
+    document.getElementById("edit-group-id").value   = id;
     document.getElementById("edit-group-name").value = name;
+
+    // Marcar el emoji actual como seleccionado
+    document.querySelectorAll("#emoji-picker-edit .emoji-option").forEach(opt => {
+        opt.classList.toggle("selected", opt.dataset.emoji === image_url);
+    });
+
     openModal("modal-edit-group");
 }
 
