@@ -124,8 +124,6 @@
     text-align:center;
 }
 
-.group-photo-preview-wrap:hover #group-photo-overlay { display:flex !important; }
-
 .chat-sidebar{
     width:320px;
     transition:.25s;
@@ -219,46 +217,42 @@
 }
 .task-panel.open{ display:block; }
 
-/* ── TASK CARD ── */
 .task-mini-card{
     background:#fff;
     border:1px solid #eee;
-    border-radius:12px;
-    padding:12px 14px;
-    margin-bottom:10px;
+    border-radius:10px;
+    padding:10px 12px;
+    margin-bottom:8px;
     font-size:12px;
-    transition: box-shadow .2s;
 }
-.task-mini-card:hover{ box-shadow: 0 2px 10px rgba(0,0,0,.07); }
-.task-mini-card.done{ opacity:.6; }
+.task-mini-card.done{ opacity:.55; }
 
 .task-mini-card-header{
     display:flex;
     justify-content:space-between;
     align-items:flex-start;
-    margin-bottom:6px;
+    margin-bottom:4px;
 }
 
 .task-mini-card h4{
-    margin:0 0 2px;
+    margin:0;
     font-size:13px;
     color:#0b2341;
 }
 
 .task-type-badge{
     font-size:10px;
-    padding:2px 8px;
+    padding:2px 7px;
     border-radius:20px;
     font-weight:700;
     background:#e0f7fa;
     color:#00838f;
-    white-space:nowrap;
 }
 
 .task-assigned{
     font-size:11px;
     color:#888;
-    margin-bottom:6px;
+    margin-bottom:4px;
 }
 
 .task-progress-label{
@@ -266,11 +260,10 @@
     justify-content:space-between;
     color:#666;
     margin-bottom:4px;
-    font-size:11px;
 }
 
 .progress-wrap{
-    height:7px;
+    height:6px;
     background:#eee;
     border-radius:999px;
     overflow:hidden;
@@ -282,65 +275,13 @@
 }
 .progress-bar.done{ background:#4caf50; }
 
-.task-footer{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:8px;
-}
-
 .task-points{
     font-size:11px;
     color:#888;
+    margin-top:4px;
+    text-align:right;
 }
 
-/* Status badges del panel de chat (sin botón de reclamar) */
-.task-status-badge{
-    font-size:10px;
-    padding:3px 8px;
-    border-radius:20px;
-    font-weight:700;
-}
-.task-status-badge.completed{
-    background:#fff8e1;
-    color:#f57f17;
-}
-.task-status-badge.ready{
-    background:#e8f5e9;
-    color:#2e7d32;
-}
-.task-status-badge.claimed{
-    background:#e0f7fa;
-    color:#00838f;
-}
-
-/* ── TOAST ── */
-.chat-toast{
-    position:fixed;
-    bottom:80px;
-    left:50%;
-    transform:translateX(-50%) translateY(20px);
-    background:#0b2341;
-    color:#fff;
-    padding:12px 22px;
-    border-radius:14px;
-    font-weight:700;
-    font-size:14px;
-    opacity:0;
-    pointer-events:none;
-    z-index:9998;
-    transition:.3s;
-    max-width:340px;
-    text-align:center;
-}
-.chat-toast.show{
-    opacity:1;
-    transform:translateX(-50%) translateY(0);
-}
-.chat-toast.success{ background:#2e7d32; }
-.chat-toast.warning{ background:#e65100; }
-
-/* ── CHAT ── */
 .chat-messages{
     flex:1;
     overflow-y:auto;
@@ -434,11 +375,6 @@
                 <button id="tasks-toggle-btn" class="task-panel-toggle" style="display:none" onclick="toggleTaskPanel()">
                     📋 Tareas
                 </button>
-                <button id="videocall-btn" class="task-panel-toggle" style="display:none;"
-                    onclick="iniciarLlamada()"
-                    title="Videollamada">
-                    📹 Llamar
-                </button>
                 <button id="encrypt-toggle-btn" class="task-panel-toggle" style="display:none;"
                     onclick="toggleEncryption()"
                     title="Activar/desactivar cifrado">
@@ -457,7 +393,7 @@
 
         <section class="chat-messages" id="chat-messages-area"></section>
 
-        <!-- Preview multimedia -->
+        <!-- Preview multimedia (encima del input bar) -->
         <div id="media-preview" style="display:none;padding:8px 14px;background:#f0f4ff;
              border-top:1px solid #dde3f0;align-items:center;gap:10px;">
             <span id="media-preview-name" style="font-size:13px;color:#333;flex:1;overflow:hidden;
@@ -486,9 +422,6 @@
 </div>
 </div>
 
-<!-- Toast global -->
-<div class="chat-toast" id="chat-toast"></div>
-
 <!-- MODAL: Crear Grupo -->
 <div class="modal-overlay" id="modal-create-group">
     <div class="modal-box">
@@ -515,77 +448,19 @@
 <!-- MODAL: Editar Grupo -->
 <div class="modal-overlay" id="modal-edit-group">
     <div class="modal-box">
-        <h3>✏️ Editar Grupo</h3>
+        <h3>Editar Grupo</h3>
         <input type="hidden" id="edit-group-id">
-
-        <!-- Foto de portada del grupo -->
-        <label>Foto del grupo</label>
-        <div id="group-photo-preview" style="
-            width:100%; height:140px; border-radius:12px;
-            background:#f0f4ff; border:2px dashed #c5d0e8;
-            display:flex; flex-direction:column;
-            align-items:center; justify-content:center;
-            cursor:pointer; overflow:hidden; position:relative;
-            margin-top:6px; transition:.2s;"
-            onclick="document.getElementById('group-photo-input').click()">
-            <span id="group-photo-placeholder" style="font-size:13px;color:#8899bb;text-align:center;padding:10px;">
-                📷<br>Toca para subir foto de portada
-            </span>
-            <img id="group-photo-img" src="" alt=""
-                style="display:none;width:100%;height:100%;object-fit:cover;border-radius:10px;">
-            <div id="group-photo-overlay" style="
-                display:none; position:absolute; inset:0;
-                background:rgba(0,0,0,.35); border-radius:10px;
-                align-items:center; justify-content:center;
-                color:#fff; font-size:13px; font-weight:700; cursor:pointer;"
-                onclick="document.getElementById('group-photo-input').click()">
-                📷 Cambiar foto
-            </div>
-        </div>
-        <input type="file" id="group-photo-input" accept="image/*"
-               style="display:none;" onchange="onGroupPhotoSelected(this)">
-        <small id="group-photo-msg" style="color:#888;font-size:11px;display:block;margin-top:4px;"></small>
-
-        <!-- Nombre -->
-        <label>Nombre del grupo</label>
-        <input id="edit-group-name" placeholder="Nombre del grupo">
-
-        <!-- Icono emoji -->
+        <label>Nombre</label>
+        <input id="edit-group-name">
         <label>Icono</label>
         <div class="emoji-picker" id="emoji-picker-edit">
             <span class="emoji-option selected" data-emoji="👥">👥</span>
             <span class="emoji-option" data-emoji="⚽">⚽</span>
             <span class="emoji-option" data-emoji="🏆">🏆</span>
-            <span class="emoji-option" data-emoji="🔥">🔥</span>
-            <span class="emoji-option" data-emoji="🎯">🎯</span>
-            <span class="emoji-option" data-emoji="🌎">🌎</span>
         </div>
-
-        <!-- Separador -->
-        <div style="border-top:1px solid #eee;margin:18px 0 0;"></div>
-
-        <!-- Agregar miembro -->
-        <label style="margin-top:16px;">➕ Agregar miembro al grupo</label>
-        <div style="display:flex;gap:8px;margin-top:6px;">
-            <input id="add-member-email" placeholder="Email del amigo" style="flex:1;">
-            <button class="btn-primary" style="flex-shrink:0;padding:10px 14px;font-size:13px;border-radius:8px;"
-                onclick="agregarMiembroAlGrupo()">Agregar</button>
-        </div>
-        <small id="add-member-msg" style="display:block;margin-top:5px;font-size:12px;"></small>
-
-        <!-- Lista de miembros actuales -->
-        <label style="margin-top:14px;">👥 Miembros actuales</label>
-        <div id="current-members-list" style="
-            max-height:140px; overflow-y:auto;
-            border:1px solid #eee; border-radius:10px;
-            padding:8px; margin-top:6px; background:#fafafa;
-            font-size:13px; color:#444;">
-            <span style="color:#aaa;font-size:12px;">Cargando...</span>
-        </div>
-
-        <div class="modal-actions" style="margin-top:18px;">
+        <div class="modal-actions">
             <button class="btn-cancel" onclick="closeModal('modal-edit-group')">Cancelar</button>
-            <button class="btn-primary" onclick="guardarEdicionGrupo()">💾 Guardar</button>
+            <button class="btn-primary" onclick="guardarEdicionGrupo()">Guardar</button>
         </div>
     </div>
 </div>
@@ -605,17 +480,9 @@
                 <div class="icon">📸</div>
                 <div class="label">Multimedia</div>
             </div>
-            <div class="task-type-option" data-type="location" onclick="selectTaskType(this)">
-                <div class="icon">📍</div>
-                <div class="label">Ubicaciones</div>
-            </div>
             <div class="task-type-option" data-type="call" onclick="selectTaskType(this)">
                 <div class="icon">📹</div>
                 <div class="label">Llamadas</div>
-            </div>
-            <div class="task-type-option" data-type="friends" onclick="selectTaskType(this)">
-                <div class="icon">🤝</div>
-                <div class="label">Agregar amigos</div>
             </div>
         </div>
 
@@ -671,29 +538,16 @@ let myFriends    = [];
 let chatType     = "private";
 
 const TASK_TYPE_LABELS = {
-    messages: { icon: "💬", label: "Mensajes"       },
-    media:    { icon: "📸", label: "Multimedia"      },
-    location: { icon: "📍", label: "Ubicaciones"     },
-    call:     { icon: "📹", label: "Llamadas"        },
-    friends:  { icon: "🤝", label: "Agregar amigos"  }
+    messages: { icon: "💬", label: "Mensajes" },
+    media:    { icon: "📸", label: "Multimedia" },
+    call:     { icon: "📹", label: "Llamadas" }
 };
 
 const TARGET_LABELS = {
     messages: "Meta (número de mensajes)",
     media:    "Meta (número de fotos/videos)",
-    location: "Meta (número de ubicaciones)",
-    call:     "Meta (número de llamadas)",
-    friends:  "Meta (número de amigos a agregar)"
+    call:     "Meta (número de llamadas)"
 };
-
-/* ── TOAST ── */
-function showToast(msg, type = "default") {
-    const t = document.getElementById("chat-toast");
-    t.textContent = msg;
-    t.className = "chat-toast show" + (type !== "default" ? " " + type : "");
-    clearTimeout(t._timer);
-    t._timer = setTimeout(() => t.classList.remove("show"), 3200);
-}
 
 /* SIDEBAR */
 function toggleSidebar(e) {
@@ -743,16 +597,16 @@ function joinChat(id, type, group = null) {
 
     if (type === "group") {
         document.getElementById("tasks-toggle-btn").style.display = "block";
-        document.getElementById("videocall-btn").style.display    = "none";
     } else {
         document.getElementById("tasks-toggle-btn").style.display = "none";
-        document.getElementById("videocall-btn").style.display    = "block";
         closeTaskPanel();
     }
+    // Mostrar botón de cifrado en cualquier chat
     document.getElementById("encrypt-toggle-btn").style.display = "block";
+    // Reset cifrado al cambiar de chat
     encryptionEnabled = false;
     const encBtn = document.getElementById("encrypt-toggle-btn");
-    encBtn.textContent     = "🔓 Cifrado";
+    encBtn.textContent    = "🔓 Cifrado";
     encBtn.style.background  = "";
     encBtn.style.color       = "";
     encBtn.style.borderColor = "";
@@ -770,6 +624,7 @@ async function loadFriends() {
         div.className = "friend-item";
         div.style.cssText = "display:flex;align-items:center;gap:10px;padding:10px 14px;";
 
+        // Avatar con foto o emoji
         const avatarWrap = document.createElement("div");
         avatarWrap.style.cssText = `
             position:relative; width:36px; height:36px;
@@ -777,12 +632,15 @@ async function loadFriends() {
             background:#e0e7ff; display:flex;
             align-items:center; justify-content:center; font-size:18px;
         `;
+
         if (f.profile_photo) {
             avatarWrap.innerHTML = `<img src="${f.profile_photo}"
                 style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
         } else {
             avatarWrap.textContent = "👤";
         }
+
+        // Dot de estado
         const dot = document.createElement("div");
         dot.style.cssText = `
             position:absolute; bottom:0; right:0;
@@ -792,6 +650,7 @@ async function loadFriends() {
         `;
         avatarWrap.appendChild(dot);
 
+        // Info
         const info = document.createElement("div");
         info.style.cssText = "display:flex;flex-direction:column;gap:1px;overflow:hidden;";
         info.innerHTML = `
@@ -803,11 +662,14 @@ async function loadFriends() {
                 ${f.is_online ? "● En línea" : "● Desconectado"}
             </span>
         `;
+
         div.appendChild(avatarWrap);
         div.appendChild(info);
 
         div.onclick = () => {
             document.getElementById("current-group-name").textContent = f.full_name;
+
+            // Header avatar con foto y dot de estado
             const headerAv = document.getElementById("header-avatar");
             headerAv.style.cssText = `
                 position:relative; width:38px; height:38px;
@@ -821,15 +683,18 @@ async function loadFriends() {
             } else {
                 headerAv.innerHTML = "👤";
             }
+            // Dot estado
             headerAv.innerHTML += `<div style="
                 position:absolute;bottom:0;right:0;
                 width:10px;height:10px;border-radius:50%;
                 background:${f.is_online ? "#2ed573" : "#ccc"};
                 border:2px solid #fff;z-index:5;"></div>`;
+
             document.getElementById("header-status-text").textContent =
                 f.is_online ? "● En línea" : "● Desconectado";
             document.getElementById("header-status-text").style.color =
                 f.is_online ? "#2ed573" : "#aaa";
+
             const a = Math.min(+userId, +f.id);
             const b = Math.max(+userId, +f.id);
             joinChat(`${a}_${b}`, "private");
@@ -845,37 +710,63 @@ async function loadGroups() {
     const c = document.getElementById("groups-sidebar");
     c.innerHTML = "";
     groups.forEach(g => {
+        // Ocultar grupo MTY del sidebar
+        if (g.id === 9999) return;
+
         const div = document.createElement("div");
         div.className = "friend-item";
-        const avatarHTML = g.group_photo
-            ? `<img src="${g.group_photo}" style="width:32px;height:32px;object-fit:cover;
-                border-radius:50%;flex-shrink:0;border:2px solid #e0e7ff;">`
-            : `<span style="font-size:22px;flex-shrink:0;">${g.image_url}</span>`;
+        div.style.cssText = "display:flex;align-items:center;gap:10px;padding:10px 14px;";
 
-        div.innerHTML = `
-            <div class="group-item-row">
-                <div style="display:flex;align-items:center;gap:8px;overflow:hidden;">
-                    ${avatarHTML}
-                    <span style="font-weight:600;white-space:nowrap;overflow:hidden;
-                                 text-overflow:ellipsis;">${g.name}</span>
-                </div>
-                <button class="group-edit-btn" style="flex-shrink:0;">✏️</button>
-            </div>`;
+        // Avatar del grupo
+        const avatarWrap = document.createElement("div");
+        avatarWrap.style.cssText = `
+            width:36px;height:36px;border-radius:50%;flex-shrink:0;
+            background:#e0e7ff;display:flex;align-items:center;
+            justify-content:center;font-size:20px;overflow:hidden;
+        `;
+        // Si image_url es una URL de imagen real, mostrarla; si no, mostrar emoji
+        if (g.image_url && g.image_url.startsWith("http")) {
+            avatarWrap.innerHTML = `<img src="${g.image_url}"
+                style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+        } else {
+            avatarWrap.textContent = g.image_url || "👥";
+        }
+
+        // Info del grupo
+        const info = document.createElement("div");
+        info.style.cssText = "flex:1;display:flex;justify-content:space-between;align-items:center;overflow:hidden;";
+        info.innerHTML = `
+            <span style="font-size:14px;font-weight:600;color:#111;
+                         white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${g.name}
+            </span>
+            ${g.created_by == userId ? `<button class="group-edit-btn">✏️</button>` : ""}
+        `;
+
+        div.appendChild(avatarWrap);
+        div.appendChild(info);
         div.onclick = (e) => {
             if (e.target.classList.contains("group-edit-btn")) {
-                openEditGroupModal(e, g.id, g.name, g.image_url, g.group_photo);
+                openEditGroupModal(e, g.id, g.name, g.image_url);
                 return;
             }
             document.getElementById("current-group-name").textContent = `${g.image_url} ${g.name}`;
-            // Header avatar: foto de grupo si existe, si no emoji
-            const headerAv = document.getElementById("header-avatar");
-            if (g.group_photo) {
-                headerAv.innerHTML = `<img src="${g.group_photo}"
-                    style="width:38px;height:38px;object-fit:cover;border-radius:50%;">`;
-            } else {
-                headerAv.textContent = g.image_url;
-            }
             document.getElementById("header-status-text").textContent = "● Grupo";
+
+            // Header avatar — emoji o imagen
+            const headerAv = document.getElementById("header-avatar");
+            headerAv.style.cssText = `
+                width:38px;height:38px;border-radius:50%;flex-shrink:0;
+                background:#e0e7ff;display:flex;align-items:center;
+                justify-content:center;font-size:20px;overflow:hidden;
+            `;
+            if (g.image_url && g.image_url.startsWith("http")) {
+                headerAv.innerHTML = `<img src="${g.image_url}"
+                    style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+            } else {
+                headerAv.textContent = g.image_url || "👥";
+            }
+
             joinChat(`group_${g.id}`, "group", g);
             loadGroupTasks(g.id);
         };
@@ -897,91 +788,44 @@ function closeTaskPanel() {
 async function loadGroupTasks(groupId) {
     const list = document.getElementById("task-panel-list");
     try {
-        list.innerHTML = "<p style='color:#aaa;font-size:12px;text-align:center;'>Cargando...</p>";
+        list.innerHTML = "Cargando...";
         const res   = await fetch(`${API_URL}/tasks/${groupId}`);
         const tasks = await res.json();
         list.innerHTML = "";
-        if (!tasks.length) {
-            list.innerHTML = "<p style='color:#aaa;font-size:12px;text-align:center;'>Sin misiones aún</p>";
-            return;
-        }
-        tasks.forEach(t => renderTaskCard(t, list));
+        if (!tasks.length) { list.innerHTML = "Sin tareas"; return; }
+        tasks.forEach(t => {
+            const current = Number(t.current_value) || 0;
+            const target  = Number(t.target_value)  || 1;
+            const percent = Math.min((current / target) * 100, 100);
+            const div = document.createElement("div");
+            div.className = "task-mini-card";
+            div.innerHTML = `
+                <h4>${t.title}</h4>
+                <p>${current}/${target}</p>
+                <div class="progress-wrap">
+                    <div class="progress-bar" style="width:${percent}%"></div>
+                </div>`;
+            list.appendChild(div);
+        });
     } catch (err) {
-        list.innerHTML = "<p style='color:#f44;font-size:12px;'>Error cargando misiones</p>";
+        list.innerHTML = "Error cargando tareas";
         console.error(err);
     }
-}
-
-function renderTaskCard(t, container) {
-    const current  = Number(t.current_value) || 0;
-    const target   = Number(t.target_value)  || 1;
-    const percent  = Math.min((current / target) * 100, 100);
-    const typeInfo = TASK_TYPE_LABELS[t.task_type] || { icon: "📋", label: t.task_type };
-
-    const div = document.createElement("div");
-    div.className = "task-mini-card" + (t.completed ? " done" : "");
-
-    // Estado visual — sin botón de reclamar (eso es solo en task.html)
-    let statusHTML = "";
-    if (t.claimed) {
-        statusHTML = `<span class="task-status-badge claimed">✓ Reclamada</span>`;
-    } else if (t.completed) {
-        statusHTML = `<span class="task-status-badge completed">🎉 ¡Completada! — Ve a Tareas para reclamar</span>`;
-    } else if (current >= target) {
-        statusHTML = `<span class="task-status-badge ready">✅ Lista para reclamar en Tareas</span>`;
-    }
-
-    div.innerHTML = `
-        <div class="task-mini-card-header">
-            <div>
-                <h4>${t.title}</h4>
-                ${t.description ? `<p style="margin:0 0 2px;font-size:11px;color:#888;">${t.description}</p>` : ""}
-            </div>
-            <span class="task-type-badge">${typeInfo.icon} ${typeInfo.label}</span>
-        </div>
-        ${t.assigned_name ? `<div class="task-assigned">👤 Asignado a: ${t.assigned_name}</div>` : ""}
-        <div class="task-progress-label">
-            <span>Progreso</span>
-            <span>${current} / ${target}</span>
-        </div>
-        <div class="progress-wrap">
-            <div class="progress-bar${t.completed ? " done" : ""}" style="width:${percent}%"></div>
-        </div>
-        <div class="task-footer">
-            <span class="task-points">⭐ ${t.points} pts</span>
-            ${statusHTML}
-        </div>
-    `;
-    container.appendChild(div);
 }
 
 /* SOCKET EVENTS */
 socket.on("new_message", (msg) => {
     if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
+    // El servidor devuelve el mensaje con el flag encrypted
     renderMessage(msg);
-    // Recargar panel de tareas tras recibir cualquier mensaje en grupo
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
-        // Pequeño delay para que el servidor termine de actualizar current_value
-        setTimeout(() => loadGroupTasks(currentGroup.id), 800);
+        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
     }
 });
 
 socket.on("task_progress", async () => {
-    if (chatType === "group" && currentGroup) {
-        // Recargar siempre que estemos en un grupo, el panel esté abierto o no
-        // (así el botón Reclamar aparece en cuanto se completa la meta)
-        if (document.getElementById("task-panel").classList.contains("open")) {
-            await loadGroupTasks(currentGroup.id);
-        }
-    }
-});
-
-socket.on("task_completed", (data) => {
-    showToast(`🏆 Misión "${data.title}" completada! +${data.points} pts`, "success");
-    if (chatType === "group" && currentGroup) {
-        setTimeout(() => loadGroupTasks(currentGroup.id), 500);
-    }
+    if (chatType === "group" && currentGroup) await loadGroupTasks(currentGroup.id);
 });
 
 /* MESSAGES */
@@ -1015,6 +859,7 @@ function renderMessage(msg) {
                 onclick="window.open('${url}','_blank')">`;
         }
     } else if (msg.message_type === "location") {
+        // Extraer URL del mensaje
         const urlMatch = msg.message.match(/https:\/\/[^\s]+/);
         const mapUrl   = urlMatch ? urlMatch[0] : null;
         const coords   = mapUrl ? mapUrl.replace("https://www.google.com/maps?q=", "").split(",") : [];
@@ -1037,10 +882,14 @@ function renderMessage(msg) {
                 </a>
             </div>` : `<br>${msg.message}`;
     } else {
+        // Texto plano o descifrar si está cifrado
         if (msg.encrypted) {
+            // Descifrar asincrónicamente
             decryptMsg(msg.message, String(msg.chat_id).trim()).then(plain => {
                 const bubble = div.querySelector(".msg-text");
-                if (bubble) bubble.textContent = plain;
+                if (bubble) {
+                    bubble.textContent = plain;
+                }
             });
             bodyHTML = `<br><span class="msg-text">🔒 Descifrando...</span>`;
         } else {
@@ -1067,6 +916,7 @@ async function enviarMensaje() {
     const message = input.value.trim();
     if (!chatId) return;
 
+    // Si hay archivo multimedia pendiente, subirlo primero
     if (pendingMediaFile) {
         const sendBtn = document.querySelector(".input-bar button:last-child");
         sendBtn.textContent = "⏳";
@@ -1082,7 +932,7 @@ async function enviarMensaje() {
             });
             cancelMedia();
         } catch (err) {
-            showToast("Error al subir el archivo", "warning");
+            alert("Error al subir el archivo. Intenta de nuevo.");
             console.error(err);
         } finally {
             sendBtn.textContent = "Enviar";
@@ -1094,8 +944,8 @@ async function enviarMensaje() {
 
     if (!message) return;
 
-    let finalMessage = message;
-    let isEncrypted  = false;
+    let finalMessage   = message;
+    let isEncrypted    = false;
 
     if (encryptionEnabled) {
         finalMessage = await encryptMsg(message, chatId);
@@ -1110,6 +960,10 @@ async function enviarMensaje() {
         encrypted: isEncrypted
     });
     input.value = "";
+    if (chatType === "group" && currentGroup &&
+        document.getElementById("task-panel").classList.contains("open")) {
+        setTimeout(() => loadGroupTasks(currentGroup.id), 600);
+    }
 }
 
 document.getElementById("input-chat-main").addEventListener("keydown", e => {
@@ -1139,155 +993,24 @@ async function crearGrupo() {
 }
 
 /* GROUP EDIT */
-async function openEditGroupModal(e, id, name, emoji, groupPhoto) {
+function openEditGroupModal(e, id, name) {
     e.stopPropagation();
-    document.getElementById("edit-group-id").value    = id;
-    document.getElementById("edit-group-name").value  = name;
-    document.getElementById("add-member-msg").textContent  = "";
-    document.getElementById("add-member-email").value = "";
-    document.getElementById("group-photo-msg").textContent = "";
-    pendingGroupPhoto = null;
-
-    // Reset emoji picker
-    document.querySelectorAll("#emoji-picker-edit .emoji-option").forEach(o => {
-        o.classList.toggle("selected", o.dataset.emoji === emoji);
-    });
-
-    // Mostrar foto actual si existe
-    const img         = document.getElementById("group-photo-img");
-    const placeholder = document.getElementById("group-photo-placeholder");
-    const overlay     = document.getElementById("group-photo-overlay");
-    if (groupPhoto) {
-        img.src              = groupPhoto;
-        img.style.display    = "block";
-        placeholder.style.display = "none";
-        overlay.style.display     = "flex";
-    } else {
-        img.src              = "";
-        img.style.display    = "none";
-        placeholder.style.display = "flex";
-        overlay.style.display     = "none";
-    }
-
-    // Cargar miembros actuales
-    await loadCurrentMembers(id);
+    document.getElementById("edit-group-id").value  = id;
+    document.getElementById("edit-group-name").value = name;
     openModal("modal-edit-group");
-}
-
-async function loadCurrentMembers(groupId) {
-    const list = document.getElementById("current-members-list");
-    list.innerHTML = `<span style="color:#aaa;font-size:12px;">Cargando...</span>`;
-    try {
-        const res     = await fetch(`${API_URL}/groups/${groupId}/members`);
-        const members = await res.json();
-        if (!members.length) {
-            list.innerHTML = `<span style="color:#aaa;font-size:12px;">Sin miembros</span>`;
-            return;
-        }
-        list.innerHTML = members.map(m => `
-            <div style="display:flex;align-items:center;gap:8px;padding:5px 4px;
-                        border-bottom:1px solid #f0f0f0;">
-                <span style="font-size:18px;">👤</span>
-                <span style="font-weight:600;">${m.full_name}</span>
-                ${m.id == userId ? '<span style="font-size:10px;color:#00bcd4;font-weight:700;">TÚ</span>' : ""}
-            </div>`).join("");
-    } catch {
-        list.innerHTML = `<span style="color:#f44;font-size:12px;">Error al cargar</span>`;
-    }
 }
 
 async function guardarEdicionGrupo() {
     const id        = document.getElementById("edit-group-id").value;
     const name      = document.getElementById("edit-group-name").value.trim();
     const image_url = selectedEmoji("emoji-picker-edit");
-    const saveBtn   = document.querySelector("#modal-edit-group .btn-primary:last-child");
-
-    if (!name) { showToast("Escribe un nombre para el grupo", "warning"); return; }
-
-    saveBtn.disabled    = true;
-    saveBtn.textContent = "⏳ Guardando...";
-
-    let group_photo = document.getElementById("group-photo-img").src || null;
-    // Si hay una foto nueva pendiente de subir, subirla primero
-    if (pendingGroupPhoto) {
-        const photoMsg = document.getElementById("group-photo-msg");
-        photoMsg.textContent = "Subiendo foto...";
-        try {
-            group_photo = await uploadToSupabase(pendingGroupPhoto);
-            photoMsg.textContent = "";
-            pendingGroupPhoto = null;
-        } catch (err) {
-            photoMsg.textContent = "Error al subir la foto";
-            photoMsg.style.color = "#f44";
-            saveBtn.disabled    = false;
-            saveBtn.textContent = "💾 Guardar";
-            return;
-        }
-    }
-
-    // Si la imagen es un blob URL local, no la enviamos (no se subió aún)
-    if (group_photo && group_photo.startsWith("blob:")) group_photo = null;
-
     await fetch(`${API_URL}/groups/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, image_url, user_id: userId, group_photo })
+        body: JSON.stringify({ name, image_url, user_id: userId })
     });
-
     closeModal("modal-edit-group");
-    saveBtn.disabled    = false;
-    saveBtn.textContent = "💾 Guardar";
-    showToast("✅ Grupo actualizado", "success");
     loadGroups();
-}
-
-/* ── AGREGAR MIEMBRO AL GRUPO ──
-   Llama al nuevo endpoint POST /groups/:id/members
-   Esto también dispara el progreso de tareas tipo 'friends'
-*/
-async function agregarMiembroAlGrupo() {
-    const email   = document.getElementById("add-member-email").value.trim();
-    const groupId = document.getElementById("edit-group-id").value;
-    const msg     = document.getElementById("add-member-msg");
-
-    if (!email) { msg.textContent = "Escribe un email."; return; }
-    msg.textContent = "Buscando...";
-
-    try {
-        // Primero buscar el usuario por email
-        const searchRes = await fetch(`${API_URL}/users/by-email/${encodeURIComponent(email)}`);
-        if (!searchRes.ok) {
-            msg.textContent = "Usuario no encontrado.";
-            msg.style.color = "#f44";
-            return;
-        }
-        const targetUser = await searchRes.json();
-
-        // Agregarlo al grupo
-        const addRes = await fetch(`${API_URL}/groups/${groupId}/members`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_id: targetUser.id })
-        });
-
-        if (addRes.ok) {
-            msg.style.color = "#2e7d32";
-            msg.textContent = `✓ ${targetUser.full_name} agregado al grupo`;
-            document.getElementById("add-member-email").value = "";
-            // Notificar progreso al panel de tareas
-            if (currentGroup && currentGroup.id == groupId &&
-                document.getElementById("task-panel").classList.contains("open")) {
-                setTimeout(() => loadGroupTasks(groupId), 600);
-            }
-        } else {
-            const err = await addRes.json();
-            msg.style.color = "#f44";
-            msg.textContent = err.error || "Error al agregar.";
-        }
-    } catch (e) {
-        msg.style.color = "#f44";
-        msg.textContent = "Error de conexión.";
-    }
 }
 
 /* CREATE TASK */
@@ -1323,7 +1046,7 @@ async function crearTarea() {
     const task_type    = selectedTaskType();
     const target_value = parseInt(document.getElementById("new-task-target").value);
     const assigned_to  = document.getElementById("new-task-assigned").value || null;
-    if (!title) { showToast("Escribe un título para la misión", "warning"); return; }
+    if (!title) { alert("Por favor escribe un título para la misión."); return; }
     await fetch(`${API_URL}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1334,7 +1057,6 @@ async function crearTarea() {
         })
     });
     closeModal("modal-create-task");
-    showToast("✅ ¡Misión creada!", "success");
     loadGroupTasks(currentGroup.id);
 }
 
@@ -1342,26 +1064,7 @@ async function crearTarea() {
 const SUPABASE_URL  = "https://ktfojwoghksilundhyuh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Zm9qd29naGtzaWx1bmRoeXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDYyNjAsImV4cCI6MjA5MTg4MjI2MH0.WN4mZ2AoAU148zKAtip-Ixd-cG0WJOM2bDB_DIjMA1E";
 
-let pendingMediaFile  = null;
-let pendingGroupPhoto = null;
-
-function onGroupPhotoSelected(input) {
-    const file = input.files[0];
-    if (!file) return;
-    pendingGroupPhoto = file;
-    const img         = document.getElementById("group-photo-img");
-    const placeholder = document.getElementById("group-photo-placeholder");
-    const overlay     = document.getElementById("group-photo-overlay");
-    const msg         = document.getElementById("group-photo-msg");
-
-    // Preview local
-    img.src              = URL.createObjectURL(file);
-    img.style.display    = "block";
-    placeholder.style.display = "none";
-    overlay.style.display     = "flex";
-    msg.textContent      = `📎 ${file.name} (${(file.size/1024/1024).toFixed(1)} MB)`;
-    msg.style.color      = "#555";
-}
+let pendingMediaFile = null;
 
 function onMediaSelected(input) {
     const file = input.files[0];
@@ -1401,8 +1104,14 @@ async function uploadToSupabase(file) {
 
 /* ── UBICACIÓN ── */
 async function enviarUbicacion() {
-    if (!chatId) { showToast("Abre un chat primero", "warning"); return; }
-    if (!navigator.geolocation) { showToast("Tu navegador no soporta geolocalización", "warning"); return; }
+    if (!chatId) {
+        alert("Abre un chat primero.");
+        return;
+    }
+    if (!navigator.geolocation) {
+        alert("Tu navegador no soporta geolocalización.");
+        return;
+    }
 
     const btn = document.getElementById("location-btn");
     btn.textContent = "⏳";
@@ -1414,17 +1123,19 @@ async function enviarUbicacion() {
             const lng = pos.coords.longitude.toFixed(6);
             const url = `https://www.google.com/maps?q=${lat},${lng}`;
             const message = `📍 Mi ubicación: ${url}`;
+
             socket.emit("send_message", {
                 chat_id: chatId,
                 username: userName,
                 message,
                 message_type: "location"
             });
+
             btn.textContent = "📍";
             btn.disabled = false;
         },
-        () => {
-            showToast("No se pudo obtener tu ubicación. Verifica los permisos.", "warning");
+        (err) => {
+            alert("No se pudo obtener tu ubicación. Verifica los permisos del navegador.");
             btn.textContent = "📍";
             btn.disabled = false;
         },
@@ -1435,9 +1146,10 @@ async function enviarUbicacion() {
 /* ── CIFRADO AES ── */
 let encryptionEnabled = false;
 
+// Deriva una clave AES a partir del chat_id
 async function getKey(chatId) {
-    const enc    = new TextEncoder();
-    const keyMat = await crypto.subtle.importKey(
+    const enc     = new TextEncoder();
+    const keyMat  = await crypto.subtle.importKey(
         "raw", enc.encode("fifa2026_" + chatId),
         { name: "PBKDF2" }, false, ["deriveKey"]
     );
@@ -1455,6 +1167,7 @@ async function encryptMsg(text, chatId) {
     const enc = new TextEncoder();
     const iv  = crypto.getRandomValues(new Uint8Array(12));
     const ct  = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, enc.encode(text));
+    // Guardar iv + ciphertext en base64
     const combined = new Uint8Array(iv.byteLength + ct.byteLength);
     combined.set(iv, 0);
     combined.set(new Uint8Array(ct), iv.byteLength);
@@ -1478,14 +1191,14 @@ function toggleEncryption() {
     encryptionEnabled = !encryptionEnabled;
     const btn = document.getElementById("encrypt-toggle-btn");
     if (encryptionEnabled) {
-        btn.textContent       = "🔒 Cifrado";
-        btn.style.background  = "#e8f5e9";
-        btn.style.color       = "#2e7d32";
+        btn.textContent  = "🔒 Cifrado";
+        btn.style.background = "#e8f5e9";
+        btn.style.color      = "#2e7d32";
         btn.style.borderColor = "#a5d6a7";
     } else {
-        btn.textContent       = "🔓 Cifrado";
-        btn.style.background  = "";
-        btn.style.color       = "";
+        btn.textContent  = "🔓 Cifrado";
+        btn.style.background = "";
+        btn.style.color      = "";
         btn.style.borderColor = "";
     }
 }
@@ -1498,11 +1211,17 @@ async function setOnline() {
 
 async function setOffline() {
     if (!userId) return;
+    // sendBeacon para que funcione aunque se cierre la pestaña
     navigator.sendBeacon(`${API_URL}/users/${userId}/offline`);
 }
 
+// Marcar online al cargar
 setOnline();
+
+// Marcar offline al cerrar/salir de la página
 window.addEventListener("beforeunload", setOffline);
+
+// Marcar offline al cerrar sesión
 document.addEventListener("click", (e) => {
     if (e.target && e.target.id === "logoutBtn") setOffline();
 });
@@ -1513,394 +1232,5 @@ loadGroups();
 </script>
 
 <script src="../js/navbar.js"></script>
-
-<!-- ══════════════════════════════════════
-     VIDEOLLAMADA — ventana flotante
-══════════════════════════════════════ -->
-<div id="call-overlay" style="
-    display:none; position:fixed; inset:0;
-    background:rgba(0,0,0,.6); z-index:10000;
-    align-items:center; justify-content:center;">
-
-    <!-- Pantalla de llamada entrante -->
-    <div id="call-incoming" style="
-        display:none; background:#fff; border-radius:22px;
-        padding:36px 40px; text-align:center;
-        box-shadow:0 24px 60px rgba(0,0,0,.35); min-width:280px;">
-        <div style="font-size:52px;margin-bottom:12px;">📹</div>
-        <h3 id="incoming-name" style="margin:0 0 6px;color:#0b2341;">Videollamada</h3>
-        <p style="margin:0 0 24px;color:#888;font-size:13px;">Llamada entrante...</p>
-        <div style="display:flex;gap:14px;justify-content:center;">
-            <button onclick="rechazarLlamada()" style="
-                padding:13px 28px; border:none; border-radius:50px;
-                background:#ff4757; color:#fff; font-size:18px;
-                font-weight:800; cursor:pointer;">✕ Rechazar</button>
-            <button onclick="aceptarLlamada()" style="
-                padding:13px 28px; border:none; border-radius:50px;
-                background:#2ed573; color:#fff; font-size:18px;
-                font-weight:800; cursor:pointer;">✓ Aceptar</button>
-        </div>
-    </div>
-
-    <!-- Ventana de videollamada activa -->
-    <div id="call-window" style="
-        display:none; background:#0b2341; border-radius:22px;
-        overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.5);
-        width:min(720px,95vw); position:relative;">
-
-        <!-- Video remoto (fondo) -->
-        <video id="remote-video" autoplay playsinline style="
-            width:100%; display:block; background:#000;
-            min-height:360px; max-height:70vh; object-fit:cover;"></video>
-
-        <!-- Video local (esquina) -->
-        <video id="local-video" autoplay playsinline muted style="
-            position:absolute; bottom:70px; right:14px;
-            width:120px; border-radius:12px;
-            border:2px solid rgba(255,255,255,.4);
-            box-shadow:0 4px 16px rgba(0,0,0,.4);
-            background:#111; object-fit:cover;
-            aspect-ratio:4/3;"></video>
-
-        <!-- Estado de la llamada -->
-        <div id="call-status-bar" style="
-            position:absolute; top:14px; left:50%;
-            transform:translateX(-50%);
-            background:rgba(0,0,0,.5); color:#fff;
-            padding:5px 16px; border-radius:20px;
-            font-size:13px; font-weight:600;
-            backdrop-filter:blur(8px);">
-            📹 Conectando...
-        </div>
-
-        <!-- Controles -->
-        <div style="
-            display:flex; justify-content:center; gap:14px;
-            padding:14px; background:rgba(0,0,0,.6);
-            backdrop-filter:blur(10px);">
-
-            <button id="btn-mic" onclick="toggleMic()" title="Micrófono" style="
-                width:50px;height:50px;border-radius:50%;border:none;
-                background:rgba(255,255,255,.15);color:#fff;
-                font-size:20px;cursor:pointer;transition:.2s;">🎙️</button>
-
-            <button id="btn-cam" onclick="toggleCam()" title="Cámara" style="
-                width:50px;height:50px;border-radius:50%;border:none;
-                background:rgba(255,255,255,.15);color:#fff;
-                font-size:20px;cursor:pointer;transition:.2s;">📷</button>
-
-            <button onclick="colgarLlamada()" title="Colgar" style="
-                width:56px;height:56px;border-radius:50%;border:none;
-                background:#ff4757;color:#fff;
-                font-size:22px;cursor:pointer;
-                box-shadow:0 4px 14px rgba(255,71,87,.5);
-                transition:.2s;">📵</button>
-        </div>
-    </div>
-</div>
-
-<style>
-#call-overlay.active { display:flex !important; }
-#call-incoming.active, #call-window.active { display:block !important; }
-#btn-mic.muted, #btn-cam.off {
-    background: rgba(255,71,87,.5) !important;
-}
-</style>
-
-<script>
-/* ══════════════════════════════════════
-   WEBRTC — VIDEOLLAMADAS
-══════════════════════════════════════ */
-let pc            = null;   // RTCPeerConnection
-let localStream   = null;
-let micEnabled    = true;
-let camEnabled    = true;
-let callChatId    = null;   // chat_id de la llamada activa
-let pendingOffer  = null;   
-let iceCandidateQueue = [];// oferta entrante guardada
-
-const ICE_SERVERS = {
-    iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        {
-            urls: "turn:openrelay.metered.ca:80",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        },
-        {
-            urls: "turn:openrelay.metered.ca:443?transport=tcp",
-            username: "openrelayproject",
-            credential: "openrelayproject"
-        }
-    ]
-};
-
-/* ── UI helpers ── */
-function showOverlay(panel) {
-    document.getElementById("call-overlay").classList.add("active");
-    document.getElementById("call-incoming").classList.remove("active");
-    document.getElementById("call-window").classList.remove("active");
-    if (panel) document.getElementById(panel).classList.add("active");
-}
-
-function hideOverlay() {
-    document.getElementById("call-overlay").classList.remove("active");
-    document.getElementById("call-incoming").classList.remove("active");
-    document.getElementById("call-window").classList.remove("active");
-}
-
-function setCallStatus(txt) {
-    document.getElementById("call-status-bar").textContent = txt;
-}
-
-/* ── Obtener cámara y micrófono ──
-   Fallback progresivo para móviles:
-   1) video 720p + audio
-   2) video sin resolución fija + audio
-   3) solo audio (si la cámara falla)
-   Muestra el error exacto del navegador para diagnóstico.
-── */
-async function getLocalStream() {
-    // Verificar que la API existe (algunos navegadores viejos o HTTP puro no la tienen)
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Tu navegador no soporta videollamadas. Usa Chrome o Safari actualizado y asegúrate de que la página esté en HTTPS.");
-    }
-
-    const intentos = [
-        // 1. Video HD + audio
-        { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: true },
-        // 2. Video sin resolución + audio (más compatible con móviles)
-        { video: { facingMode: "user" }, audio: true },
-        // 3. Cualquier video + audio
-        { video: true, audio: true },
-        // 4. Solo audio como último recurso
-        { video: false, audio: true }
-    ];
-
-    let lastErr = null;
-    for (const constraints of intentos) {
-        try {
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            const localVid = document.getElementById("local-video");
-            localVid.srcObject = localStream;
-            // En móvil a veces hay que llamar play() manualmente
-            localVid.play().catch(() => {});
-            return localStream;
-        } catch (err) {
-            lastErr = err;
-            console.warn("getUserMedia intento fallido:", constraints, err.name, err.message);
-        }
-    }
-
-    // Todos los intentos fallaron — armar mensaje útil
-    let msg = "No se pudo acceder a la cámara/micrófono.";
-    if (lastErr) {
-        if (lastErr.name === "NotAllowedError" || lastErr.name === "PermissionDeniedError") {
-            msg = "Permiso denegado. Ve a Ajustes > Safari/Chrome > Permisos y activa cámara y micrófono para este sitio.";
-        } else if (lastErr.name === "NotFoundError" || lastErr.name === "DevicesNotFoundError") {
-            msg = "No se encontró cámara o micrófono en este dispositivo.";
-        } else if (lastErr.name === "NotReadableError" || lastErr.name === "TrackStartError") {
-            msg = "La cámara está siendo usada por otra app. Ciérrala e intenta de nuevo.";
-        } else if (lastErr.name === "OverconstrainedError") {
-            msg = "La cámara no cumple los requisitos. Intenta con otro navegador.";
-        } else if (lastErr.name === "TypeError") {
-            msg = "Necesitas HTTPS para usar la cámara. Contacta al administrador.";
-        } else {
-            msg = `Error: ${lastErr.name} — ${lastErr.message}`;
-        }
-    }
-    throw new Error(msg);
-}
-
-/* ── Crear RTCPeerConnection ── */
-function createPC() {
-    if (pc) { pc.close(); pc = null; }
-    pc = new RTCPeerConnection(ICE_SERVERS);
-
-    pc.onicecandidate = (e) => {
-        if (e.candidate) {
-            socket.emit("call_ice", { to_chat_id: callChatId, candidate: e.candidate });
-        }
-    };
-
-    pc.ontrack = (e) => {
-        const remoteVid = document.getElementById("remote-video");
-        remoteVid.srcObject = e.streams[0];
-        remoteVid.play().catch(() => {});
-        setCallStatus("📹 En llamada");
-    };
-
-    pc.onconnectionstatechange = () => {
-        const state = pc.connectionState;
-        if (state === "connecting") setCallStatus("⏳ Conectando...");
-        if (state === "connected")  setCallStatus("📹 En llamada");
-        if (["disconnected", "failed", "closed"].includes(state)) {
-            colgarLlamada();
-        }
-    };
-
-    if (localStream) {
-        localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-    }
-    return pc;
-}
-
-/* ── INICIAR LLAMADA (caller) ── */
-async function iniciarLlamada() {
-    if (!chatId || chatType !== "private") return;
-    callChatId = chatId;
-
-    // Mostrar pantalla de llamada de inmediato para que el usuario sepa que algo pasó
-    showOverlay("call-window");
-    setCallStatus("⏳ Solicitando permisos...");
-
-    try {
-        await getLocalStream();
-        createPC();
-        setCallStatus("⏳ Llamando...");
-
-        const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
-        await pc.setLocalDescription(offer);
-
-        socket.emit("call_invite", {
-            to_chat_id: callChatId,
-            from_name:  userName,
-            offer
-        });
-    } catch (err) {
-        hideOverlay();
-        showToast(err.message || "No se pudo iniciar la llamada", "warning");
-        limpiarLlamada();
-    }
-}
-
-/* ── LLAMADA ENTRANTE ── */
-socket.on("call_invite", async (data) => {
-    if (String(data.to_chat_id).trim() !== String(chatId).trim()) return;
-    pendingOffer = data.offer;
-    document.getElementById("incoming-name").textContent =
-        `📹 ${data.from_name} te llama`;
-    showOverlay("call-incoming");
-});
-
-/* ── ACEPTAR ── */
-async function aceptarLlamada() {
-    if (!pendingOffer) return;
-    callChatId = chatId;
-    showOverlay("call-window");
-    setCallStatus("⏳ Solicitando permisos...");
-
-    try {
-        await getLocalStream();
-        createPC();
-        setCallStatus("⏳ Conectando...");
-
-        await pc.setRemoteDescription(new RTCSessionDescription(pendingOffer));
-
-        // ✅ Vaciar candidatos que llegaron antes de estar listo
-        for (const candidate of iceCandidateQueue) {
-            try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
-        }
-        iceCandidateQueue = [];
-
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit("call_answer", { to_chat_id: callChatId, answer });
-        pendingOffer = null;
-    } catch (err) {
-        hideOverlay();
-        showToast(err.message || "No se pudo unir a la llamada", "warning");
-        limpiarLlamada();
-    }
-}
-
-/* ── RECHAZAR ── */
-function rechazarLlamada() {
-    socket.emit("call_reject", { to_chat_id: chatId });
-    pendingOffer = null;
-    hideOverlay();
-    showToast("Llamada rechazada", "warning");
-}
-
-/* ── RESPUESTA DEL RECEPTOR (answer) ── */
-socket.on("call_answer", async (data) => {
-    if (!pc) return;
-    await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
-    setCallStatus("📹 En llamada");
-});
-
-/* ── ICE CANDIDATES ── */
-socket.on("call_ice", async (data) => {
-    if (!pc || !pc.remoteDescription) {
-        iceCandidateQueue.push(data.candidate);
-        return;
-    }
-    try {
-        await pc.addIceCandidate(new RTCIceCandidate(data.candidate));
-    } catch (e) {
-        console.warn("ICE candidate descartado:", e);
-    }
-});
-
-/* ── LLAMADA RECHAZADA ── */
-socket.on("call_reject", () => {
-    showToast("📵 Llamada rechazada", "warning");
-    limpiarLlamada();
-});
-
-/* ── LLAMADA TERMINADA (otro cuelga) ── */
-socket.on("call_end", () => {
-    showToast("📵 La llamada terminó", "default");
-    limpiarLlamada();
-});
-
-/* ── COLGAR ── */
-function colgarLlamada() {
-    if (callChatId) socket.emit("call_end", { to_chat_id: callChatId });
-    limpiarLlamada();
-}
-
-function limpiarLlamada() {
-    if (pc) { pc.close(); pc = null; }
-    if (localStream) {
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-    }
-    iceCandidateQueue = [];
-    document.getElementById("local-video").srcObject  = null;
-    document.getElementById("remote-video").srcObject = null;
-    callChatId   = null;
-    pendingOffer = null;
-    micEnabled   = true;
-    camEnabled   = true;
-    document.getElementById("btn-mic").classList.remove("muted");
-    document.getElementById("btn-cam").classList.remove("off");
-    hideOverlay();
-}
-
-/* ── CONTROLES MIC / CAM ── */
-function toggleMic() {
-    if (!localStream) return;
-    micEnabled = !micEnabled;
-    localStream.getAudioTracks().forEach(t => t.enabled = micEnabled);
-    document.getElementById("btn-mic").textContent = micEnabled ? "🎙️" : "🔇";
-    document.getElementById("btn-mic").classList.toggle("muted", !micEnabled);
-}
-
-function toggleCam() {
-    if (!localStream) return;
-    camEnabled = !camEnabled;
-    localStream.getVideoTracks().forEach(t => t.enabled = camEnabled);
-    document.getElementById("btn-cam").textContent = camEnabled ? "📷" : "🚫";
-    document.getElementById("btn-cam").classList.toggle("off", !camEnabled);
-}
-</script>
-
 </body>
 </html>
