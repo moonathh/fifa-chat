@@ -351,6 +351,8 @@
 .message-wrapper{
     display:flex;
     margin-bottom:10px;
+    align-items:flex-end;
+    gap:8px;
 }
 
 .message-wrapper.sent{
@@ -361,20 +363,73 @@
     justify-content:flex-start;
 }
 
+/* ── AVATAR EN MENSAJE ── */
+.msg-avatar{
+    flex-shrink:0;
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    background:#e0e7ff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    overflow:visible;
+    position:relative;
+    align-self:flex-end;
+}
+
+.msg-avatar img.msg-avatar-photo{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    object-fit:cover;
+    display:block;
+}
+
+.msg-avatar-icon{
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    width:40px; height:40px;
+    object-fit:contain;
+    pointer-events:none;
+    z-index:5;
+}
+
+.msg-online-dot{
+    position:absolute;
+    bottom:0; right:0;
+    width:9px; height:9px;
+    border-radius:50%;
+    border:2px solid #f7f7f7;
+    z-index:10;
+}
+
+/* Mensajes enviados no muestran avatar */
+.message-wrapper.sent .msg-avatar{ display:none; }
+
 .message-bubble{
     max-width:70%;
     background:#00bcd4;
     color:#fff;
-    padding:10px 14px;
+    padding:8px 12px;
     border-radius:14px;
     font-size:14px;
     line-height:1.4;
 }
 
+/* Burbuja recibida: esquina inferior izquierda recta */
 .message-wrapper.received .message-bubble{
     background:#fff;
     color:#222;
     border:1px solid #ddd;
+    border-bottom-left-radius:4px;
+}
+
+/* Burbuja enviada: esquina inferior derecha recta */
+.message-wrapper.sent .message-bubble{
+    border-bottom-right-radius:4px;
 }
 </style>
 
@@ -663,6 +718,40 @@ if (!userId || !userName) location.href = "login.html";
 
 document.getElementById("userHeaderName").textContent = userName;
 
+/* ── CATÁLOGO DE ÍCONOS ── */
+const ICON_CATALOG = {
+    icon1: "../imagenes/icon1.png",
+    icon2: "../imagenes/icon2.png",
+    icon3: "../imagenes/icon3.png",
+    icon4: "../imagenes/icon4.png",
+    icon5: "../imagenes/icon5.png",
+    star1: "../imagenes/star1.png",
+    star2: "../imagenes/star2.png",
+    star3: "../imagenes/star3.png",
+    star4: "../imagenes/star4.png",
+    star5: "../imagenes/star5.png",
+};
+
+/* ── CACHÉ DE PERFILES ── */
+// username → { profile_photo, equipped_icon, is_online }
+const userProfileCache = {};
+
+async function getProfile(username) {
+    if (userProfileCache[username]) return userProfileCache[username];
+    // Buscar en myFriends primero (ya cargados)
+    const friend = myFriends.find(f => f.full_name === username);
+    if (friend) {
+        userProfileCache[username] = {
+            profile_photo: friend.profile_photo || null,
+            equipped_icon: friend.equipped_icon || null,
+            is_online:     friend.is_online || false,
+        };
+        return userProfileCache[username];
+    }
+    // Fallback: perfil propio
+    return { profile_photo: null, equipped_icon: null, is_online: true };
+}
+
 const socket = io(API_URL);
 
 let chatId       = null;
@@ -763,6 +852,14 @@ function joinChat(id, type, group = null) {
 async function loadFriends() {
     const res = await fetch(`${API_URL}/friends/${userId}`);
     myFriends = await res.json();
+    // Refrescar caché con datos actualizados
+    myFriends.forEach(f => {
+        userProfileCache[f.full_name] = {
+            profile_photo: f.profile_photo || null,
+            equipped_icon: f.equipped_icon || null,
+            is_online:     f.is_online     || false,
+        };
+    });
     const c = document.getElementById("friends-sidebar");
     c.innerHTML = "";
     myFriends.forEach(f => {
@@ -956,9 +1053,9 @@ function renderTaskCard(t, container) {
 }
 
 /* SOCKET EVENTS */
-socket.on("new_message", (msg) => {
+socket.on("new_message", async (msg) => {
     if (String(msg.chat_id).trim() !== String(chatId).trim()) return;
-    renderMessage(msg);
+    await renderMessage(msg);
     // Recargar panel de tareas tras recibir cualquier mensaje en grupo
     if (chatType === "group" && currentGroup &&
         document.getElementById("task-panel").classList.contains("open")) {
@@ -991,14 +1088,42 @@ async function loadMessages() {
     const msgs = await res.json();
     const c    = document.getElementById("chat-messages-area");
     c.innerHTML = "";
-    msgs.forEach(renderMessage);
+    for (const msg of msgs) await renderMessage(msg);
 }
 
-function renderMessage(msg) {
-    const c   = document.getElementById("chat-messages-area");
-    const div = document.createElement("div");
-    div.className = msg.username === userName ? "message-wrapper sent" : "message-wrapper received";
+async function renderMessage(msg) {
+    const c        = document.getElementById("chat-messages-area");
+    const isSent   = msg.username === userName;
+    const div      = document.createElement("div");
+    div.className  = isSent ? "message-wrapper sent" : "message-wrapper received";
 
+    /* ── Avatar (solo en mensajes recibidos) ── */
+    let avatarHTML = "";
+    if (!isSent) {
+        const profile = await getProfile(msg.username);
+        const dotColor = profile.is_online ? "#2ed573" : "#bbb";
+
+        let innerHTML = "";
+        if (profile.profile_photo) {
+            innerHTML = `<img class="msg-avatar-photo" src="${profile.profile_photo}" alt="${msg.username}">`;
+        } else {
+            innerHTML = `<span style="font-size:15px;">👤</span>`;
+        }
+
+        let iconHTML = "";
+        if (profile.equipped_icon && ICON_CATALOG[profile.equipped_icon]) {
+            iconHTML = `<img class="msg-avatar-icon" src="${ICON_CATALOG[profile.equipped_icon]}" alt="">`;
+        }
+
+        avatarHTML = `
+            <div class="msg-avatar" title="${msg.username}">
+                ${innerHTML}
+                ${iconHTML}
+                <div class="msg-online-dot" style="background:${dotColor};"></div>
+            </div>`;
+    }
+
+    /* ── Cuerpo del mensaje ── */
     let bodyHTML = "";
 
     if (msg.message_type === "media") {
@@ -1052,9 +1177,14 @@ function renderMessage(msg) {
         ? `<span style="font-size:10px;opacity:.6;margin-left:4px;">🔒</span>`
         : "";
 
+    /* En grupos mostramos el nombre del remitente; en privados no es necesario */
+    const showName = chatType === "group" && !isSent;
+
     div.innerHTML = `
+        ${avatarHTML}
         <div class="message-bubble">
-            <b style="font-size:12px;opacity:.8;">${msg.username}</b>${encBadge}
+            ${showName ? `<b style="font-size:11px;opacity:.75;display:block;margin-bottom:2px;">${msg.username}</b>` : ""}
+            ${isSent ? `<b style="font-size:12px;opacity:.8;">Tú</b>${encBadge}` : encBadge}
             ${bodyHTML}
         </div>`;
     c.appendChild(div);
