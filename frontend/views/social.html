@@ -360,6 +360,172 @@
         .friends-section { padding: 16px; }
         .friends-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
     }
+
+    /* ── MODAL PERFIL DE AMIGO ── */
+    .profile-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,.6);
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+    }
+    .profile-modal-overlay.active { display: flex; }
+
+    .profile-modal-box {
+        background: #fff;
+        width: 100%;
+        max-width: 420px;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 24px 60px rgba(0,0,0,.3);
+        animation: modalSlideIn .25s ease;
+    }
+
+    @keyframes modalSlideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .profile-modal-banner {
+        height: 110px;
+        background: linear-gradient(135deg, #001f3f 0%, #003580 60%, #0055b3 100%);
+        position: relative;
+    }
+
+    .profile-modal-close {
+        position: absolute;
+        top: 12px; right: 14px;
+        background: rgba(255,255,255,.2);
+        border: none; color: #fff;
+        width: 32px; height: 32px;
+        border-radius: 50%;
+        font-size: 18px; line-height: 1;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: background .2s;
+    }
+    .profile-modal-close:hover { background: rgba(255,255,255,.35); }
+
+    .profile-modal-avatar-wrap {
+        position: absolute;
+        bottom: -44px; left: 50%;
+        transform: translateX(-50%);
+        width: 88px; height: 88px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        background: #e0e7ff;
+        overflow: hidden;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 36px;
+        box-shadow: 0 8px 24px rgba(0,0,0,.15);
+        z-index: 2;
+    }
+
+    .profile-modal-avatar-wrap img {
+        width: 100%; height: 100%; object-fit: cover;
+    }
+
+    .profile-modal-icon-frame {
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100px; height: 100px;
+        object-fit: contain;
+        pointer-events: none;
+        z-index: 10;
+    }
+
+    .profile-modal-online-dot {
+        position: absolute;
+        bottom: 4px; right: 4px;
+        width: 16px; height: 16px;
+        border-radius: 50%;
+        border: 3px solid #fff;
+        z-index: 15;
+    }
+
+    .profile-modal-body {
+        padding: 56px 24px 24px;
+        text-align: center;
+    }
+
+    .profile-modal-name {
+        font-family: 'Nunito', sans-serif;
+        font-weight: 800;
+        font-size: 20px;
+        color: #001f3f;
+        margin: 0 0 4px;
+    }
+
+    .profile-modal-status {
+        font-family: 'Nunito', sans-serif;
+        font-size: 13px;
+        color: #aaa;
+        margin: 0 0 18px;
+    }
+
+    .profile-modal-stats {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        margin-bottom: 22px;
+    }
+
+    .profile-stat-chip {
+        background: #f0f4ff;
+        border-radius: 14px;
+        padding: 10px 18px;
+        text-align: center;
+    }
+
+    .profile-stat-chip .val {
+        font-family: 'Nunito', sans-serif;
+        font-weight: 800;
+        font-size: 18px;
+        color: #0055b3;
+        display: block;
+    }
+
+    .profile-stat-chip .lbl {
+        font-family: 'Nunito', sans-serif;
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+    }
+
+    .profile-modal-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .pm-btn {
+        flex: 1;
+        padding: 12px;
+        border: none;
+        border-radius: 14px;
+        font-family: 'Nunito', sans-serif;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: opacity .2s, transform .1s;
+    }
+    .pm-btn:active { transform: scale(.97); }
+
+    .pm-btn-primary {
+        background: linear-gradient(135deg, #001f3f, #0055b3);
+        color: #fff;
+    }
+    .pm-btn-primary:hover { opacity: .88; }
+
+    .pm-btn-secondary {
+        background: #f0f4ff;
+        color: #0055b3;
+    }
+    .pm-btn-secondary:hover { background: #e0e9ff; }
 </style>
 </head>
 
@@ -423,6 +589,39 @@
 
 </main>
 </div>
+</div>
+
+<!-- MODAL: Perfil de Amigo -->
+<div class="profile-modal-overlay" id="profile-modal">
+    <div class="profile-modal-box">
+        <div class="profile-modal-banner">
+            <button class="profile-modal-close" onclick="closeProfileModal()">✕</button>
+            <div class="profile-modal-avatar-wrap" id="pm-avatar-wrap">
+                <span id="pm-avatar-emoji">👤</span>
+                <img id="pm-avatar-img" src="" alt="" style="display:none;">
+                <img id="pm-icon-frame" class="profile-modal-icon-frame" src="" alt="" style="display:none;">
+                <div class="profile-modal-online-dot" id="pm-online-dot" style="background:#ccc;"></div>
+            </div>
+        </div>
+        <div class="profile-modal-body">
+            <div class="profile-modal-name" id="pm-name">—</div>
+            <div class="profile-modal-status" id="pm-status">● Desconectado</div>
+            <div class="profile-modal-stats">
+                <div class="profile-stat-chip">
+                    <span class="val" id="pm-points">0</span>
+                    <span class="lbl">⭐ Puntos</span>
+                </div>
+                <div class="profile-stat-chip">
+                    <span class="val" id="pm-status-icon">😴</span>
+                    <span class="lbl">Estado</span>
+                </div>
+            </div>
+            <div class="profile-modal-actions">
+                <button class="pm-btn pm-btn-secondary" onclick="closeProfileModal()">Cerrar</button>
+                <button class="pm-btn pm-btn-primary" id="pm-chat-btn" onclick="">💬 Enviar mensaje</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -509,8 +708,11 @@ async function loadFriends() {
                         : `<span style="color:#aaa;">● Desconectado</span>`}
                     &nbsp;·&nbsp; ⭐ <span>${f.points || 0}</span> pts
                 </div>
-                <button class="friend-chat-btn" onclick="openChat('${f.full_name}')">💬 Enviar mensaje</button>
+                <button class="friend-chat-btn" onclick="event.stopPropagation(); openChat('${f.full_name}')">💬 Enviar mensaje</button>
             `;
+
+            // Click en la tarjeta abre el modal de perfil
+            card.addEventListener("click", () => openProfileModal(f));
 
             container.appendChild(card);
         });
@@ -558,6 +760,70 @@ function openChat(name) {
     sessionStorage.setItem("chatTarget", name);
     window.location.href = "index.html";
 }
+
+/* ── MODAL DE PERFIL DE AMIGO ── */
+function openProfileModal(f) {
+    // Avatar
+    const emojiEl = document.getElementById("pm-avatar-emoji");
+    const imgEl   = document.getElementById("pm-avatar-img");
+    if (f.profile_photo) {
+        emojiEl.style.display = "none";
+        imgEl.src             = f.profile_photo;
+        imgEl.style.display   = "block";
+    } else {
+        emojiEl.style.display = "inline";
+        imgEl.style.display   = "none";
+    }
+
+    // Ícono / marco equipado
+    const iconEl = document.getElementById("pm-icon-frame");
+    if (f.equipped_icon) {
+        const iconData = ICON_CATALOG.find(i => i.id === f.equipped_icon);
+        if (iconData) {
+            iconEl.src          = iconData.img;
+            iconEl.style.display = "block";
+        } else {
+            iconEl.style.display = "none";
+        }
+    } else {
+        iconEl.style.display = "none";
+    }
+
+    // Marco de color en el wrap
+    const wrapEl = document.getElementById("pm-avatar-wrap");
+    if (f.profile_frame && !f.equipped_icon) {
+        wrapEl.style.border = `4px solid ${f.profile_frame}`;
+    } else {
+        wrapEl.style.border = "4px solid #fff";
+    }
+
+    // Punto de estado online
+    const dotEl = document.getElementById("pm-online-dot");
+    dotEl.style.background = f.is_online ? "#2ed573" : "#ccc";
+
+    // Textos
+    document.getElementById("pm-name").textContent   = f.full_name;
+    document.getElementById("pm-points").textContent = f.points || 0;
+    document.getElementById("pm-status").innerHTML   = f.is_online
+        ? `<span style="color:#2ed573;font-weight:700;">● En línea</span>`
+        : `<span style="color:#aaa;">● Desconectado</span>`;
+    document.getElementById("pm-status-icon").textContent = f.is_online ? "🟢" : "😴";
+
+    // Botón de chat
+    const chatBtn = document.getElementById("pm-chat-btn");
+    chatBtn.onclick = () => openChat(f.full_name);
+
+    document.getElementById("profile-modal").classList.add("active");
+}
+
+function closeProfileModal() {
+    document.getElementById("profile-modal").classList.remove("active");
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById("profile-modal").addEventListener("click", function(e) {
+    if (e.target === this) closeProfileModal();
+});
 
 loadFriends();
 </script>
