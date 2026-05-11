@@ -406,8 +406,8 @@
     z-index:10;
 }
 
-/* Mensajes enviados no muestran avatar */
-.message-wrapper.sent .msg-avatar{ display:none; }
+/* Mensajes enviados — avatar a la derecha */
+.message-wrapper.sent .msg-avatar{ order: 1; }
 
 .message-bubble{
     max-width:70%;
@@ -415,7 +415,6 @@
     color:#fff;
     padding:8px 12px;
     border-radius:14px;
-    font-size:14px;
     line-height:1.4;
 }
 
@@ -430,6 +429,25 @@
 /* Burbuja enviada: esquina inferior derecha recta */
 .message-wrapper.sent .message-bubble{
     border-bottom-right-radius:4px;
+}
+
+/* Nombre del remitente */
+.msg-sender-name{
+    display:block;
+    font-size:11px;
+    font-weight:700;
+    opacity:.7;
+    margin-bottom:3px;
+    white-space:nowrap;
+}
+.message-wrapper.sent .msg-sender-name{
+    text-align:right;
+}
+
+/* Contenido del mensaje */
+.msg-body{
+    font-size:14px;
+    line-height:1.4;
 }
 </style>
 
@@ -736,20 +754,32 @@ const ICON_CATALOG = {
 // username → { profile_photo, equipped_icon, is_online }
 const userProfileCache = {};
 
+// Cargar perfil propio al inicio
+let myOwnProfile = { profile_photo: null, equipped_icon: null, is_online: true };
+fetch(`${API_URL}/users/${userId}`)
+    .then(r => r.json())
+    .then(data => {
+        myOwnProfile = {
+            profile_photo: data.profile_photo || null,
+            equipped_icon: data.equipped_icon || null,
+            is_online:     true,
+        };
+        userProfileCache[userName] = myOwnProfile;
+    })
+    .catch(() => {});
+
 async function getProfile(username) {
     if (userProfileCache[username]) return userProfileCache[username];
-    // Buscar en myFriends primero (ya cargados)
     const friend = myFriends.find(f => f.full_name === username);
     if (friend) {
         userProfileCache[username] = {
             profile_photo: friend.profile_photo || null,
             equipped_icon: friend.equipped_icon || null,
-            is_online:     friend.is_online || false,
+            is_online:     friend.is_online     || false,
         };
         return userProfileCache[username];
     }
-    // Fallback: perfil propio
-    return { profile_photo: null, equipped_icon: null, is_online: true };
+    return { profile_photo: null, equipped_icon: null, is_online: false };
 }
 
 const socket = io(API_URL);
@@ -1097,31 +1127,25 @@ async function renderMessage(msg) {
     const div      = document.createElement("div");
     div.className  = isSent ? "message-wrapper sent" : "message-wrapper received";
 
-    /* ── Avatar (solo en mensajes recibidos) ── */
-    let avatarHTML = "";
-    if (!isSent) {
-        const profile = await getProfile(msg.username);
-        const dotColor = profile.is_online ? "#2ed573" : "#bbb";
+    /* ── Avatar (ambos lados) ── */
+    const profile  = await getProfile(msg.username);
+    const dotColor = profile.is_online ? "#2ed573" : "#bbb";
 
-        let innerHTML = "";
-        if (profile.profile_photo) {
-            innerHTML = `<img class="msg-avatar-photo" src="${profile.profile_photo}" alt="${msg.username}">`;
-        } else {
-            innerHTML = `<span style="font-size:15px;">👤</span>`;
-        }
+    let avatarInner = profile.profile_photo
+        ? `<img class="msg-avatar-photo" src="${profile.profile_photo}" alt="${msg.username}">`
+        : `<span style="font-size:15px;">👤</span>`;
 
-        let iconHTML = "";
-        if (profile.equipped_icon && ICON_CATALOG[profile.equipped_icon]) {
-            iconHTML = `<img class="msg-avatar-icon" src="${ICON_CATALOG[profile.equipped_icon]}" alt="">`;
-        }
-
-        avatarHTML = `
-            <div class="msg-avatar" title="${msg.username}">
-                ${innerHTML}
-                ${iconHTML}
-                <div class="msg-online-dot" style="background:${dotColor};"></div>
-            </div>`;
+    let iconHTML = "";
+    if (profile.equipped_icon && ICON_CATALOG[profile.equipped_icon]) {
+        iconHTML = `<img class="msg-avatar-icon" src="${ICON_CATALOG[profile.equipped_icon]}" alt="">`;
     }
+
+    const avatarHTML = `
+        <div class="msg-avatar" title="${msg.username}">
+            ${avatarInner}
+            ${iconHTML}
+            <div class="msg-online-dot" style="background:${dotColor};"></div>
+        </div>`;
 
     /* ── Cuerpo del mensaje ── */
     let bodyHTML = "";
@@ -1129,47 +1153,32 @@ async function renderMessage(msg) {
     if (msg.message_type === "media") {
         const url = msg.message;
         const isVideo = /\.(mp4|webm|mov|avi)(\?|$)/i.test(url);
-        if (isVideo) {
-            bodyHTML = `<video src="${url}" controls
-                style="max-width:100%;max-height:260px;border-radius:10px;
-                       display:block;margin-top:6px;"></video>`;
-        } else {
-            bodyHTML = `<img src="${url}" alt="imagen"
-                style="max-width:100%;max-height:260px;border-radius:10px;
-                       display:block;margin-top:6px;cursor:pointer;"
-                onclick="window.open('${url}','_blank')">`;
-        }
+        bodyHTML = isVideo
+            ? `<video src="${url}" controls style="max-width:100%;max-height:260px;border-radius:10px;display:block;margin-top:6px;"></video>`
+            : `<img src="${url}" alt="imagen" style="max-width:100%;max-height:260px;border-radius:10px;display:block;margin-top:6px;cursor:pointer;" onclick="window.open('${url}','_blank')">`;
     } else if (msg.message_type === "location") {
         const urlMatch = msg.message.match(/https:\/\/[^\s]+/);
         const mapUrl   = urlMatch ? urlMatch[0] : null;
         const coords   = mapUrl ? mapUrl.replace("https://www.google.com/maps?q=", "").split(",") : [];
-        const lat      = coords[0];
-        const lng      = coords[1];
+        const lat = coords[0], lng = coords[1];
         bodyHTML = mapUrl ? `
-            <div style="margin-top:6px;border-radius:12px;overflow:hidden;
-                        border:2px solid rgba(255,255,255,.3);">
-                <iframe
-                    src="https://maps.google.com/maps?q=${lat},${lng}&z=17&markers=${lat},${lng}&output=embed"
-                    width="240" height="160"
-                    style="display:block;border:none;"
-                    loading="lazy">
-                </iframe>
+            <div style="margin-top:6px;border-radius:12px;overflow:hidden;border:2px solid rgba(255,255,255,.3);">
+                <iframe src="https://maps.google.com/maps?q=${lat},${lng}&z=17&markers=${lat},${lng}&output=embed"
+                    width="240" height="160" style="display:block;border:none;" loading="lazy"></iframe>
                 <a href="${mapUrl}" target="_blank"
-                   style="display:block;padding:6px 10px;font-size:12px;
-                          background:rgba(0,0,0,.15);color:inherit;
-                          text-decoration:none;text-align:center;">
+                   style="display:block;padding:6px 10px;font-size:12px;background:rgba(0,0,0,.15);color:inherit;text-decoration:none;text-align:center;">
                     📍 Ver en Google Maps
                 </a>
             </div>` : `<br>${msg.message}`;
     } else {
         if (msg.encrypted) {
             decryptMsg(msg.message, String(msg.chat_id).trim()).then(plain => {
-                const bubble = div.querySelector(".msg-text");
-                if (bubble) bubble.textContent = plain;
+                const el = div.querySelector(".msg-text");
+                if (el) el.textContent = plain;
             });
-            bodyHTML = `<br><span class="msg-text">🔒 Descifrando...</span>`;
+            bodyHTML = `<span class="msg-text">🔒 Descifrando...</span>`;
         } else {
-            bodyHTML = `<br><span class="msg-text">${msg.message}</span>`;
+            bodyHTML = `<span class="msg-text">${msg.message}</span>`;
         }
     }
 
@@ -1177,16 +1186,13 @@ async function renderMessage(msg) {
         ? `<span style="font-size:10px;opacity:.6;margin-left:4px;">🔒</span>`
         : "";
 
-    /* En grupos mostramos el nombre del remitente; en privados no es necesario */
-    const showName = chatType === "group" && !isSent;
-
     div.innerHTML = `
         ${avatarHTML}
         <div class="message-bubble">
-            ${showName ? `<b style="font-size:11px;opacity:.75;display:block;margin-bottom:2px;">${msg.username}</b>` : ""}
-            ${isSent ? `<b style="font-size:12px;opacity:.8;">Tú</b>${encBadge}` : encBadge}
-            ${bodyHTML}
+            <span class="msg-sender-name">${msg.username}${encBadge}</span>
+            <div class="msg-body">${bodyHTML}</div>
         </div>`;
+
     c.appendChild(div);
     c.scrollTop = c.scrollHeight;
 }
