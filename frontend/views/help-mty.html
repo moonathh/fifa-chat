@@ -97,8 +97,8 @@
         }
 
         .mty-msg-avatar {
-            width: 32px;
-            height: 32px;
+            width: 34px;
+            height: 34px;
             border-radius: 50%;
             background: #dde3f0;
             display: flex;
@@ -106,14 +106,40 @@
             justify-content: center;
             font-size: 14px;
             flex-shrink: 0;
-            overflow: hidden;
+            overflow: visible;
+            position: relative;
         }
 
-        .mty-msg-avatar img {
-            width: 100%;
-            height: 100%;
+        .mty-msg-avatar img.mty-avatar-photo {
+            width: 34px;
+            height: 34px;
             object-fit: cover;
             border-radius: 50%;
+            display: block;
+        }
+
+        .mty-avatar-icon {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px; height: 40px;
+            object-fit: contain;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .mty-avatar-dot {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 9px; height: 9px;
+            border-radius: 50%;
+            border: 2px solid #f5f7fa;
+            z-index: 10;
+        }
+
+        /* Nombre en burbujas enviadas alineado a la derecha */
+        .mty-msg-row.sent .mty-bubble-name {
+            text-align: right;
         }
 
         .mty-bubble {
@@ -395,18 +421,82 @@ document.getElementById("user-name-display").textContent = userName;
 const SUPABASE_URL  = "https://ktfojwoghksilundhyuh.supabase.co";
 const SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt0Zm9qd29naGtzaWx1bmRoeXVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzMDYyNjAsImV4cCI6MjA5MTg4MjI2MH0.WN4mZ2AoAU148zKAtip-Ixd-cG0WJOM2bDB_DIjMA1E";
 
+/* ── CATÁLOGO DE ÍCONOS ── */
+const ICON_CATALOG = {
+    icon1: "../imagenes/icon1.png",
+    icon2: "../imagenes/icon2.png",
+    icon3: "../imagenes/icon3.png",
+    icon4: "../imagenes/icon4.png",
+    icon5: "../imagenes/icon5.png",
+    star1: "../imagenes/star1.png",
+    star2: "../imagenes/star2.png",
+    star3: "../imagenes/star3.png",
+    star4: "../imagenes/star4.png",
+    star5: "../imagenes/star5.png",
+};
+
+/* ── CACHÉ DE PERFILES ── */
+// username → { profile_photo, equipped_icon, is_online }
+const profileCache = {};
+
+// Cargar perfil propio al inicio
+fetch(`${API}/users/${userId}`)
+    .then(r => r.json())
+    .then(data => {
+        profileCache[userName] = {
+            profile_photo: data.profile_photo || null,
+            equipped_icon: data.equipped_icon || null,
+            is_online:     true,
+        };
+    })
+    .catch(() => {});
+
+async function getProfile(username) {
+    if (profileCache[username]) return profileCache[username];
+    // Intentar obtener de la API
+    try {
+        const res  = await fetch(`${API}/users/by-name/${encodeURIComponent(username)}`);
+        if (res.ok) {
+            const data = await res.json();
+            profileCache[username] = {
+                profile_photo: data.profile_photo || null,
+                equipped_icon: data.equipped_icon || null,
+                is_online:     data.is_online     || false,
+            };
+            return profileCache[username];
+        }
+    } catch {}
+    return { profile_photo: null, equipped_icon: null, is_online: false };
+}
+
+function buildAvatarHTML(profile, username, dotBorder = "#f5f7fa") {
+    const dotColor = profile.is_online ? "#2ed573" : "#bbb";
+
+    const photoEl = profile.profile_photo
+        ? `<img class="mty-avatar-photo" src="${profile.profile_photo}" alt="${username}">`
+        : `<span style="font-size:15px;">👤</span>`;
+
+    const iconEl = (profile.equipped_icon && ICON_CATALOG[profile.equipped_icon])
+        ? `<img class="mty-avatar-icon" src="${ICON_CATALOG[profile.equipped_icon]}" alt="">`
+        : "";
+
+    return `
+        <div class="mty-msg-avatar" title="${username}">
+            ${photoEl}
+            ${iconEl}
+            <div class="mty-avatar-dot" style="background:${dotColor};border-color:${dotBorder};"></div>
+        </div>`;
+}
+
 const socket = io(API);
 let pendingFile = null;
-
-// Cache de fotos de perfil por username
-const photoCache = {};
 
 /* ── SOCKET ── */
 socket.emit("join_chat", MTY_CHAT);
 
-socket.on("new_message", (msg) => {
+socket.on("new_message", async (msg) => {
     if (String(msg.chat_id).trim() !== MTY_CHAT) return;
-    renderMessage(msg);
+    await renderMessage(msg);
 });
 
 socket.on("presence_update", () => {
@@ -416,7 +506,6 @@ socket.on("presence_update", () => {
 /* ── LOAD ── */
 async function init() {
     await Promise.all([loadMessages(), loadCounts()]);
-    // Polling de online count cada 30s
     setInterval(loadOnlineCount, 30000);
 }
 
@@ -425,7 +514,7 @@ async function loadMessages() {
         const res  = await fetch(`${API}/messages/${MTY_CHAT}`);
         const msgs = await res.json();
         document.getElementById("mty-messages").innerHTML = "";
-        msgs.forEach(renderMessage);
+        for (const msg of msgs) await renderMessage(msg);
     } catch (e) { console.error(e); }
 }
 
@@ -464,17 +553,8 @@ async function renderMessage(msg) {
     const row    = document.createElement("div");
     row.className = `mty-msg-row ${isSent ? "sent" : "received"}`;
 
-    // Avatar
-    let avatarHTML = "👤";
-    if (!isSent) {
-        if (photoCache[msg.username]) {
-            avatarHTML = `<img src="${photoCache[msg.username]}" alt="">`;
-        }
-    } else {
-        // Propio usuario — foto del sessionStorage si existe
-        const myPhoto = sessionStorage.getItem("profile_photo");
-        if (myPhoto) avatarHTML = `<img src="${myPhoto}" alt="">`;
-    }
+    const profile    = await getProfile(msg.username);
+    const avatarHTML = buildAvatarHTML(profile, msg.username);
 
     // Contenido del mensaje
     let bodyHTML = "";
@@ -482,14 +562,11 @@ async function renderMessage(msg) {
 
     if (type === "media") {
         const isVideo = /\.(mp4|webm|mov|avi)(\?|$)/i.test(msg.message);
-        if (isVideo) {
-            bodyHTML = `<div class="tag-pill tag-media">📹 Video</div>
-                <video src="${msg.message}" controls></video>`;
-        } else {
-            bodyHTML = `<div class="tag-pill tag-media">📸 Foto</div>
-                <img class="media-img" src="${msg.message}" alt="imagen"
-                     onclick="window.open('${msg.message}','_blank')">`;
-        }
+        bodyHTML = isVideo
+            ? `<div class="tag-pill tag-media">📹 Video</div><video src="${msg.message}" controls></video>`
+            : `<div class="tag-pill tag-media">📸 Foto</div>
+               <img class="media-img" src="${msg.message}" alt="imagen"
+                    onclick="window.open('${msg.message}','_blank')">`;
     } else if (type === "location") {
         const urlMatch = msg.message.match(/https:\/\/[^\s]+/);
         const mapUrl   = urlMatch ? urlMatch[0] : null;
@@ -510,10 +587,10 @@ async function renderMessage(msg) {
         : "";
 
     row.innerHTML = `
-        <div class="mty-msg-avatar">${avatarHTML}</div>
+        ${avatarHTML}
         <div>
             <div class="mty-bubble">
-                ${!isSent ? `<div class="mty-bubble-name">${msg.username}</div>` : ""}
+                <div class="mty-bubble-name">${msg.username}</div>
                 ${bodyHTML}
                 <div class="mty-time">${time}</div>
             </div>
